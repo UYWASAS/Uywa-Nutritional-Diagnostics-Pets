@@ -1,45 +1,19 @@
 # ======================== BLOQUE 1: IMPORTS Y UTILIDADES ========================
 import streamlit as st
 import pandas as pd
-import numpy as np
-import plotly.graph_objects as go
-import random
 import base64
 
-# Función para generar colores únicos
-def get_color_map(items):
-    """
-    Devuelve un diccionario con una asignación de colores para cada elemento único en la lista.
-    
-    Parámetros:
-    - items: Lista de elementos (por ejemplo, ingredientes).
-
-    Retorno:
-    - Diccionario {'elemento': 'color'}.
-    """
-    palette = [
-        "#FF5733", "#33FF57", "#3357FF", "#FFF333", "#8E44AD", "#3498DB",
-        "#1ABC9C", "#E67E22", "#E74C3C", "#9B59B6", "#2ECC71", "#F1C40F",
-        "#16A085", "#2980B9", "#D35400", "#C0392B", "#27AE60", "#7F8C8D"
-    ]
-    random.shuffle(palette)
-    return {item: palette[i % len(palette)] for i, item in enumerate(items)}
-
 from utils.nutrient_reference import NUTRIENTES_REFERENCIA_PERRO, NUTRIENTES_REFERENCIA_GATO
-from utils.fmt_tools import fmt2, fmt2_df
-from data import load_ingredients, get_nutrient_list
-from optimization import DietFormulator
+from utils.fmt_tools import fmt2
 from profile import load_profile, save_profile, update_mascota_en_perfil
 from ui import show_mascota_form
 from energy_requirements import calcular_mer, calcular_rer
 from energy_requirements import descripcion_condiciones
 from auth import USERS_DB
 from food_analysis import show_food_analysis
-from food_database import FOODS, calculate_energy as calc_energy_food, calculate_ena as calc_ena_food, get_food_names as get_food_names_db
+from food_database import FOODS, calculate_energy as calc_energy_food, calculate_ena as calc_ena_food
 from food_database import calculate_energy_breakdown
 from patient_followup import show_patient_followup
-from PIL import Image
-import io
 import datetime
 from export_tools import (
     generar_diagnostico_resumen,
@@ -220,7 +194,7 @@ CONDICIONES_GESTACION_FINAL = {
 }
 
 # ======================== BLOQUE 2: ESTILO Y LOGO CON BARRA LATERAL ========================
-st.set_page_config(page_title="Formulador UYWA Premium", layout="wide")
+st.set_page_config(page_title="UYWA Nutritional Diagnostics", layout="wide")
 
 # Estilo global para la aplicación
 st.markdown("""
@@ -265,7 +239,7 @@ user = st.session_state.get("user", None)
 
 # Configuración de la barra lateral
 with st.sidebar:
-    st.image("asstes/logo.png", use_container_width=True)
+    st.image("assets/logo.png", use_container_width=True)
     st.markdown(
         """
         <div style="text-align:center;margin-bottom:20px;">
@@ -289,7 +263,6 @@ with st.sidebar:
         st.warning("Por favor, inicia sesión.")
 
 # ======================== BLOQUE 3: LOGIN ========================
-from auth import USERS_DB
 
 def login():
     """
@@ -328,7 +301,6 @@ if not user:
     st.stop()
 
 # ======================== BLOQUE 3.1: CARGA DEL PERFIL ========================
-from profile import load_profile, save_profile
 
 # Carga el perfil asociado al usuario autenticado
 profile = load_profile(user) or {}
@@ -381,8 +353,6 @@ tabs = st.tabs([
     "Resumen y Exportar",
     "Seguimiento del Paciente",
 ])
-
-from nutrient_tools import transformar_referencia_a_porcentaje
 
 # ======================== BLOQUE 5.1: TAB PERFIL EDITABLE + CÁLCULOS COMPLETO ========================
 with tabs[0]:
@@ -1049,100 +1019,9 @@ with tabs[0]:
         st.error(f"Error en cálculos y ajustes: {str(e)}")
         st.stop()
 
-# ======================== DEFINICIÓN DE FUNCIONES AUXILIARES ========================
-def get_unidades_dict(nutrientes_seleccionados):
-    """
-    Devuelve un diccionario de nutrientes seleccionados con sus unidades correspondientes.
-    Si el nutriente no tiene una unidad definida, se asigna por defecto 'unidad'.
-    """
-    unidades_base = {
-        "Proteína": "g",
-        "Grasa": "g",
-        "Energía metabolizable (EM)": "kcal",
-        "Calcio": "mg",
-        "Fósforo": "mg",
-        "Hierro": "mg",
-        "Zinc": "mg",
-        "Vitamina A": "UI",
-        "Vitamina D": "UI",
-        "Vitamina E": "mg",
-    }
-    return {nutriente: unidades_base.get(nutriente, "unidad") for nutriente in nutrientes_seleccionados}
-
 # ======================== BLOQUE 6: ANÁLISIS NUTRICIONAL ========================
 with tabs[1]:
     show_food_analysis()
-
-# ======================== FUNCIONES AUXILIARES ========================
-def mf_a_ms(gramos_mf, humedad_pct):
-    """Convierte gramos en Materia Fresca a Materia Seca usando el % de humedad."""
-    return gramos_mf * (100.0 - humedad_pct) / 100.0
-
-
-def fmt2(x):
-    try:
-        f = float(x)
-        return f"{f:,.2f}"
-    except Exception:
-        return x
-
-def fmt2_df(df):
-    df_fmt = df.copy()
-    for c in df_fmt.columns:
-        if c.startswith('%') or c.lower().startswith('costo') or c.lower().startswith('precio') or c.lower().startswith('aporte'):
-            df_fmt[c] = df_fmt[c].apply(fmt2)
-    return df_fmt
-
-# --- Mapeo color ingredientes (simple pero efectivo) ---
-def get_color_map(ingredientes):
-    palette = [
-        "#19345c", "#7a9fc8", "#e2b659", "#7fc47f",
-        "#ed7a7a", "#c07ad7", "#7ad7d2", "#ffb347",
-        "#b7e28a", "#d1a3a4", "#f0837c", "#b2b2b2",
-    ]
-    return {ing: palette[i % len(palette)] for i, ing in enumerate(ingredientes)}
-
-# --- Selector de unidad robusto ---
-def unit_selector(label, options, default, key):
-    idx = options.index(default) if default in options else 0
-    return st.selectbox(label, options, index=idx, key=key)
-
-# --- Factor de conversión y etiqueta según unidad ---
-def get_unit_factor(base_unit, manual_unit):
-    # Ejemplo: base_unit = "kg", manual_unit = "ton" ⇒ factor = 0.001
-    conversion = {
-        ("kg", "kg"): (1, "kg"),
-        ("kg", "ton"): (0.001, "ton"),
-        ("g", "g"): (1, "g"),
-        ("g", "100g"): (0.01, "100g"),
-        ("g", "kg"): (0.001, "kg"),
-        ("g", "ton"): (0.000001, "ton"),
-        ("kcal", "kcal"): (1, "kcal"),
-        ("kcal", "1000kcal"): (0.001, "1000kcal"),
-        ("%", "%"): (1, "%"),  # ← CORREGIDO: Agregué la comilla faltante aquí
-        ("%", "100 unidades"): (100, "100 unidades"),
-        ("unidad", "unidad"): (1, "unidad"),
-        ("unidad", "100 unidades"): (100, "100 unidades"),
-        ("unidad", "1000 unidades"): (1000, "1000 unidades"),
-        ("unidad", "kg"): (1, "kg"),
-        ("unidad", "ton"): (0.001, "ton"),
-    }
-    return conversion.get((base_unit, manual_unit), (1, manual_unit))
-
-# --- Unidades base por nutriente (puedes ajustar según tus columnas) ---
-def get_unidades_dict(nutrientes):
-    default = "unidad"
-    ref = {
-        "PB": "kg",
-        "EE": "kg",
-        "FB": "kg",
-        "EMA_POLLIT": "kcal",
-        "LYS_DR": "g",
-        "MET_DR": "g",
-        "M+C_DR": "g",
-        # Agrega los que correspondan...
-    }
-    return {nut: ref.get(nut, default) for nut in nutrientes}
 
 # ======================== BLOQUE 9: RESUMEN Y EXPORTAR ========================
 with tabs[2]:
