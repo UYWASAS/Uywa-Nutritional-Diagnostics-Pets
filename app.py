@@ -6,7 +6,6 @@ import base64
 from utils.nutrient_reference import NUTRIENTES_REFERENCIA_PERRO, NUTRIENTES_REFERENCIA_GATO
 from utils.fmt_tools import fmt2
 from profile import load_profile, save_profile, update_mascota_en_perfil
-from ui import show_mascota_form
 from energy_requirements import calcular_mer, calcular_rer
 from energy_requirements import descripcion_condiciones
 from auth import USERS_DB
