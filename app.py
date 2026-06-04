@@ -5,9 +5,8 @@ import base64
 
 from utils.nutrient_reference import NUTRIENTES_REFERENCIA_PERRO, NUTRIENTES_REFERENCIA_GATO
 from utils.fmt_tools import fmt2
-from profile import load_profile, save_profile, update_mascota_en_perfil
-from energy_requirements import calcular_mer, calcular_rer
-from energy_requirements import descripcion_condiciones
+from profile import load_profile, save_profile
+from energy_requirements import calcular_rer
 from auth import USERS_DB
 from food_analysis import show_food_analysis
 from food_database import FOODS, calculate_energy as calc_energy_food, calculate_ena as calc_ena_food
@@ -18,12 +17,8 @@ from export_tools import (
     generar_diagnostico_resumen,
     generar_recomendaciones,
     generar_decision_resumen,
-    exportar_a_excel,
     exportar_a_html,
     exportar_ficha_maestra_excel,
-    crear_visita_dict,
-    generar_id_visita,
-    generar_uuid_paciente,
 )
 
 # Umbral de cobertura energética para alertas visuales (%)
