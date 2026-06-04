@@ -1,6 +1,5 @@
 # ======================== ANÁLISIS NUTRICIONAL DE ALIMENTOS ========================
 import plotly.graph_objects as go
-import plotly.express as px
 from plotly.subplots import make_subplots
 import pandas as pd
 import streamlit as st
@@ -109,65 +108,6 @@ def generar_interpretacion_alimento(nombre, cobertura, aporte, mer,
     return template
 
 
-def plot_macronutrients(food_name, food_data):
-    """
-    Crea un gráfico de barras apiladas con la composición proximal del alimento.
-
-    Parámetros:
-        food_name (str): Nombre del alimento.
-        food_data (dict): Diccionario con PB, EE, Ash, Humidity, FC.
-
-    Retorna:
-        plotly.graph_objects.Figure
-    """
-    ENA = calculate_ena(food_data)
-    components = {
-        "PB": food_data["PB"],
-        "EE": food_data["EE"],
-        "Ash": food_data["Ash"],
-        "Humidity": food_data["Humidity"],
-        "FC": food_data["FC"],
-        "ENA": ENA,
-    }
-
-    fig = go.Figure()
-    for key, value in components.items():
-        fig.add_trace(
-            go.Bar(
-                name=LABELS[key],
-                x=[food_name],
-                y=[value],
-                marker_color=COLORS[key],
-                text=[f"{value:.1f}%"],
-                textposition="inside",
-                hovertemplate=f"<b>{LABELS[key]}</b>: {value:.2f}%<extra></extra>",
-            )
-        )
-
-    fig.update_layout(
-        barmode="stack",
-        title=dict(
-            text=f"Composición Proximal — {food_name}",
-            font=dict(size=15, family="Montserrat, sans-serif"),
-        ),
-        yaxis_title="% (Base tal como está)",
-        xaxis_title="",
-        legend=dict(
-            orientation="v",
-            yanchor="top",
-            y=0.99,
-            xanchor="left",
-            x=1.02,
-            font=dict(size=11),
-        ),
-        plot_bgcolor="rgba(0,0,0,0)",
-        paper_bgcolor="rgba(0,0,0,0)",
-        height=500,
-        margin=dict(t=60, b=150, l=40, r=190),
-    )
-    return fig
-
-
 def plot_macronutrients_pie(food_name, food_data):
     """
     Crea un gráfico de torta mostrando la distribución de macronutrientes (sin humedad).
@@ -219,156 +159,6 @@ def plot_macronutrients_pie(food_name, food_data):
             font=dict(size=13),
         ),
         margin=dict(t=70, b=110, l=20, r=20),
-    )
-    return fig
-
-
-def plot_energy_funnel(food_name, energy):
-    """
-    Visualiza el flujo de cálculo de energía: GE → DE → ME.
-
-    Parámetros:
-        food_name (str): Nombre del alimento.
-        energy (dict): Resultado de calculate_energy().
-
-    Retorna:
-        plotly.graph_objects.Figure
-    """
-    steps = ["Energía Bruta (GE)", "Energía Digestible (DE)", "Energía Metabolizable (ME)"]
-    values = [energy["GE"], energy["DE"], energy["ME"]]
-
-    fig = go.Figure(
-        go.Funnel(
-            y=steps,
-            x=values,
-            textinfo="value+percent initial",
-            marker=dict(color=["#2176FF", "#52B788", "#FFB703"]),
-            connector=dict(line=dict(color="rgb(63, 63, 63)", dash="dot", width=1)),
-            hovertemplate="<b>%{y}</b><br>%{x:.2f} kcal/100g<extra></extra>",
-        )
-    )
-    fig.update_layout(
-        title=dict(
-            text=f"Flujo de Energía NRC — {food_name}",
-            font=dict(size=16, family="Montserrat, sans-serif"),
-        ),
-        plot_bgcolor="rgba(0,0,0,0)",
-        paper_bgcolor="rgba(0,0,0,0)",
-        height=380,
-        margin=dict(t=60, b=40, l=140, r=40),
-    )
-    return fig
-
-
-def plot_comparison_bar(selected_foods):
-    """
-    Compara la energía metabolizable de múltiples alimentos en un gráfico de barras.
-
-    Parámetros:
-        selected_foods (list[str]): Lista de nombres de alimentos a comparar.
-
-    Retorna:
-        plotly.graph_objects.Figure
-    """
-    names = []
-    me_values = []
-    ge_values = []
-    de_values = []
-    emoji_names = []
-
-    for fname in selected_foods:
-        fdata = get_food_data(fname)
-        if fdata:
-            energy = calculate_energy(fdata)
-            names.append(fname)
-            emoji_names.append(f"{fdata.get('emoji', '')} {fname}")
-            me_values.append(energy["ME"])
-            de_values.append(energy["DE"])
-            ge_values.append(energy["GE"])
-
-    fig = go.Figure()
-    fig.add_trace(go.Bar(name="GE (kcal/100g)", x=emoji_names, y=ge_values, marker_color="#8E9AAF"))
-    fig.add_trace(go.Bar(name="DE (kcal/100g)", x=emoji_names, y=de_values, marker_color="#52B788"))
-    fig.add_trace(go.Bar(name="ME (kcal/100g)", x=emoji_names, y=me_values, marker_color="#2176FF"))
-
-    fig.update_layout(
-        barmode="group",
-        title=dict(
-            text="Comparación de Energía entre Alimentos",
-            font=dict(size=16, family="Montserrat, sans-serif"),
-        ),
-        yaxis_title="kcal / 100 g",
-        xaxis_tickangle=-30,
-        legend=dict(orientation="h", yanchor="bottom", y=-0.45, xanchor="center", x=0.5),
-        plot_bgcolor="rgba(0,0,0,0)",
-        paper_bgcolor="rgba(0,0,0,0)",
-        height=450,
-        margin=dict(t=60, b=130, l=60, r=40),
-    )
-    return fig
-
-
-def plot_energy_breakdown_stacked(selected_foods):
-    """
-    Gráfico de barras apiladas mostrando ME de cada alimento desglosada
-    por contribución porcentual de Proteína, Grasa y Carbohidratos.
-
-    Parámetros:
-        selected_foods (list[str]): Lista de nombres de alimentos a comparar.
-
-    Retorna:
-        plotly.graph_objects.Figure
-    """
-    emoji_names = []
-    me_pb_vals = []
-    me_ee_vals = []
-    me_cho_vals = []
-
-    for fname in selected_foods:
-        fdata = get_food_data(fname)
-        if fdata:
-            bd = calculate_energy_breakdown(fdata)
-            emoji_names.append(f"{fdata.get('emoji', '')} {fname}")
-            me_pb_vals.append(bd["me_pb"])
-            me_ee_vals.append(bd["me_ee"])
-            me_cho_vals.append(bd["me_cho"])
-
-    fig = go.Figure()
-    fig.add_trace(go.Bar(
-        name="Proteína (PB)",
-        x=emoji_names,
-        y=me_pb_vals,
-        marker_color="#2176FF",
-        hovertemplate="<b>Proteína</b><br>%{y:.1f} kcal/100g<extra></extra>",
-    ))
-    fig.add_trace(go.Bar(
-        name="Grasa (EE)",
-        x=emoji_names,
-        y=me_ee_vals,
-        marker_color="#FFB703",
-        hovertemplate="<b>Grasa</b><br>%{y:.1f} kcal/100g<extra></extra>",
-    ))
-    fig.add_trace(go.Bar(
-        name="Carbohidratos + Fibra",
-        x=emoji_names,
-        y=me_cho_vals,
-        marker_color="#52B788",
-        hovertemplate="<b>Carbohidratos + Fibra</b><br>%{y:.1f} kcal/100g<extra></extra>",
-    ))
-
-    fig.update_layout(
-        barmode="stack",
-        title=dict(
-            text="Origen de la Energía Metabolizable por Alimento",
-            font=dict(size=16, family="Montserrat, sans-serif"),
-        ),
-        yaxis_title="Energía Metabolizable (kcal / 100 g)",
-        xaxis_tickangle=-25,
-        legend=dict(orientation="h", yanchor="bottom", y=-0.45, xanchor="center", x=0.5),
-        plot_bgcolor="rgba(0,0,0,0)",
-        paper_bgcolor="rgba(0,0,0,0)",
-        height=480,
-        margin=dict(t=60, b=140, l=60, r=40),
     )
     return fig
 
@@ -457,36 +247,6 @@ def show_energy_breakdown_cards(selected_foods):
                 """,
                 unsafe_allow_html=True,
             )
-
-
-def build_energy_breakdown_table(selected_foods):
-    """
-    Construye un DataFrame con el desglose energético de cada alimento seleccionado.
-
-    Columnas: Alimento | Proteína (kcal) | Grasa (kcal) | Carbohidratos (kcal) | GE | DE | ME
-
-    Parámetros:
-        selected_foods (list[str]): Lista de nombres de alimentos.
-
-    Retorna:
-        pandas.DataFrame
-    """
-    rows = []
-    for fname in selected_foods:
-        fdata = get_food_data(fname)
-        if not fdata:
-            continue
-        bd = calculate_energy_breakdown(fdata)
-        rows.append({
-            "Alimento": f"{fdata.get('emoji','')} {fname}",
-            "Proteína (kcal/100g)": bd["kcal_pb"],
-            "Grasa (kcal/100g)": bd["kcal_ee"],
-            "Carbohidratos (kcal/100g)": bd["kcal_cho"],
-            "GE Total (kcal/100g)": bd["GE"],
-            "DE Total (kcal/100g)": bd["DE"],
-            "ME Total (kcal/100g)": bd["ME"],
-        })
-    return pd.DataFrame(rows)
 
 
 def build_energy_breakdown_table_with_edits(selected_foods, edited_values_map=None):
