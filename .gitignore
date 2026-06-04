@@ -7,3 +7,6 @@ __pycache__/
 dist/
 build/
 .env
+
+# Local user profile data files
+*_profile.json
