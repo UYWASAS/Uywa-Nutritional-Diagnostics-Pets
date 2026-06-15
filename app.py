@@ -7,7 +7,7 @@ from utils.nutrient_reference import NUTRIENTES_REFERENCIA_PERRO, NUTRIENTES_REF
 from utils.fmt_tools import fmt2
 from profile import load_profile, save_profile
 from energy_requirements import calcular_rer
-from auth import USERS_DB
+from auth import USERS_DB, is_user_active
 from food_analysis import show_food_analysis
 from food_database import FOODS, calculate_energy as calc_energy_food, calculate_ena as calc_ena_food
 from food_database import calculate_energy_breakdown
@@ -249,10 +249,13 @@ with st.sidebar:
     )
     # Verificar el estado del usuario
     if user:
-        if user.get("premium", False):
-            st.success("Acceso premium activado")
-        else:
-            st.info("Acceso estándar activado")
+        plan = user.get("plan", "Sin plan")
+        expires = user.get("expires", None)
+    
+        st.success(f"Acceso {plan} activado")
+    
+        if expires:
+            st.caption(f"Válido hasta: {expires}")
     else:
         st.warning("Por favor, inicia sesión.")
 
@@ -260,25 +263,34 @@ with st.sidebar:
 
 def login():
     """
-    Maneja la autenticación de usuario y actualiza el estado de sesión.
+    Maneja la autenticación de usuario, valida estado activo y fecha de expiración.
     """
     st.title("Iniciar sesión")
 
-    # Campos para ingreso de credenciales
     username = st.text_input("Usuario", key="login_usuario")
     password = st.text_input("Contraseña", type="password", key="login_password")
 
     if st.button("Entrar"):
-        user = USERS_DB.get(username.strip().lower())
-        if user and user["password"] == password:
-            # Establecer la información del usuario en el estado de sesión
+        username_clean = username.strip().lower()
+        user = USERS_DB.get(username_clean)
+
+        if user and user.get("password") == password:
+            is_active, message = is_user_active(user)
+
+            if not is_active:
+                st.error(message)
+                st.stop()
+
             st.session_state["logged_in"] = True
+            st.session_state["usuario"] = username_clean
             st.session_state["user"] = user
 
-            # Mensaje de éxito al iniciar sesión
-            st.success(f"Bienvenido, {user['name']}!")
+            st.success(f"Bienvenido, {user.get('name', username_clean)}!")
+            st.rerun()
+
         else:
             st.error("Usuario o contraseña incorrectos.")
+
     else:
         if not st.session_state.get("logged_in", False):
             st.warning("Por favor, inicia sesión para acceder al contenido.")
