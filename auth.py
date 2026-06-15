@@ -1,6 +1,4 @@
 from datetime import date
-import streamlit as st
-
 
 _DEFAULT_USERS = {
     "demo": {
@@ -30,25 +28,7 @@ _DEFAULT_USERS = {
 }
 
 
-def get_users_db():
-    """
-    Retorna usuarios desde st.secrets si existen.
-    Si no existen, usa _DEFAULT_USERS.
-    """
-    try:
-        users = st.secrets.get("USERS", None)
-
-        if users:
-            return dict(users)
-
-    except Exception:
-        pass
-
-    return _DEFAULT_USERS
-
-
 def is_user_active(user):
-    """Valida si el usuario está activo y no vencido."""
     if not user.get("active", False):
         return False, "El usuario se encuentra inactivo."
 
@@ -67,4 +47,4 @@ def is_user_active(user):
     return True, ""
 
 
-USERS_DB = get_users_db()
+USERS_DB = _DEFAULT_USERS
