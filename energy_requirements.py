@@ -1,24 +1,54 @@
 import logging
 
-# Configuración básica de logging
 logging.basicConfig(level=logging.INFO)
+
+
+def validar_peso(peso):
+    """
+    Valida el peso ingresado.
+
+    Retorna:
+        float
+    """
+    try:
+        peso = float(peso)
+
+        if peso <= 0:
+            raise ValueError("El peso debe ser mayor que cero.")
+
+        return peso
+
+    except Exception as e:
+        raise ValueError(f"Peso inválido: {e}")
+
 
 def calcular_rer(peso):
     """
-    Calcula el Requerimiento Energético en Reposo (RER) de un animal.
+    Calcula el Requerimiento Energético en Reposo (RER).
 
-    Fórmula: RER = 70 * peso^0.75
+    Fórmula NRC:
+        RER = 70 × peso^0.75
 
-    Args:
-        peso (float): Peso del animal en kilogramos.
+    Parámetros:
+        peso (float): peso vivo en kg
 
-    Returns:
-        float: Requerimiento Energético en Reposo en kcal/día.
+    Retorna:
+        float: kcal/día
     """
     try:
-        rer = 70 * (peso ** 0.75)
-        logging.info(f"[RER] Calculado: {rer:.2f} kcal para peso: {peso:.2f} kg")
-        return rer
+        peso = validar_peso(peso)
+
+        rer = 70.0 * (peso ** 0.75)
+
+        logging.info(
+            "[RER] Peso %.2f kg -> %.2f kcal/día",
+            peso,
+            rer,
+        )
+
+        return round(rer, 2)
+
     except Exception as e:
-        logging.error(f"[RER] Error al calcular el RER: {e}")
-        return None
+        logging.error("[RER] %s", e)
+
+        return 0.0
