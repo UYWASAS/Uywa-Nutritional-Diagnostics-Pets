@@ -353,8 +353,6 @@ def exportar_ficha_maestra_excel(mascota, datos_energeticos, datos_alimento,
             "energia_bruta_kcal_100g": [datos_alimento.get("ge", "")],
             "energia_digestible_kcal_100g": [datos_alimento.get("de", "")],
             "energia_metabolizable_kcal_100g": [datos_alimento.get("me", "")],
-            "precio_usd_kg": [datos_alimento.get("precio", "")],
-            "distribuidor": [datos_alimento.get("distribuidor", "")],
         }
 
         df_alimento = pd.DataFrame(alimento_data)
