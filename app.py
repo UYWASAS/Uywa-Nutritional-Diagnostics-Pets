@@ -1,18 +1,27 @@
-# ======================== BLOQUE 1: IMPORTS Y UTILIDADES ========================
-import streamlit as st
-import pandas as pd
+# ======================== BLOQUE 1: IMPORTS, CONSTANTES Y UTILIDADES ========================
 import base64
+import datetime
 
-from utils.nutrient_reference import NUTRIENTES_REFERENCIA_PERRO, NUTRIENTES_REFERENCIA_GATO
+import pandas as pd
+import streamlit as st
+
+from utils.nutrient_reference import (
+    NUTRIENTES_REFERENCIA_PERRO,
+    NUTRIENTES_REFERENCIA_GATO,
+)
 from utils.fmt_tools import fmt2
+
 from profile import load_profile, save_profile
 from energy_requirements import calcular_rer
-from auth import USERS_DB, is_user_active
+from auth import authenticate_user
 from food_analysis import show_food_analysis
-from food_database import FOODS, calculate_energy as calc_energy_food, calculate_ena as calc_ena_food
-from food_database import calculate_energy_breakdown
+from food_database import (
+    FOODS,
+    calculate_energy as calc_energy_food,
+    calculate_ena as calc_ena_food,
+    calculate_energy_breakdown,
+)
 from patient_followup import show_patient_followup
-import datetime
 from export_tools import (
     generar_diagnostico_resumen,
     generar_recomendaciones,
@@ -20,17 +29,27 @@ from export_tools import (
     exportar_a_html,
     exportar_ficha_maestra_excel,
 )
+from clinical_state import (
+    safe_float,
+    get_current_clinical_state,
+    clinical_state_is_ready,
+)
 
-# Umbral de cobertura energética para alertas visuales (%)
+
+# ======================== CONSTANTES GENERALES ========================
+
 ENERGY_COVERAGE_THRESHOLD = 110
-
-# Factor de ajuste energético para mascotas adultas senior
 SENIOR_FACTOR = 0.85
 
-# Paleta de colores para gráficos radar
-RADAR_CHART_COLORS = ["#2176FF", "#FFB703", "#52B788", "#F4845F", "#8E9AAF", "#E74C3C"]
+RADAR_CHART_COLORS = [
+    "#2176FF",
+    "#FFB703",
+    "#52B788",
+    "#F4845F",
+    "#8E9AAF",
+    "#E74C3C",
+]
 
-# ======================== CONSTANTES DE DIAGNÓSTICO NUTRICIONAL ========================
 RIESGO_COLORES = {
     "Bajo": "#52B788",
     "Moderado": "#FFB703",
@@ -44,8 +63,10 @@ RIESGO_ICONS = {
 }
 
 
+# ======================== FUNCIONES DE DIAGNÓSTICO ========================
+
 def get_estado_corporal(bcs):
-    """Devuelve el estado corporal textual según el BCS (escala 1–9)."""
+    """Devuelve el estado corporal textual según BCS 1–9."""
     if 1 <= bcs <= 3:
         return "Bajo peso"
     if bcs == 4:
@@ -62,7 +83,7 @@ def get_estado_corporal(bcs):
 
 
 def calcular_riesgo_nutricional(bcs, edad, condicion, etapa, aplicar_senior):
-    """Calcula el nivel de riesgo nutricional según los parámetros del perfil."""
+    """Calcula el nivel de riesgo nutricional del paciente."""
     if bcs == 5:
         riesgo = "Bajo"
     elif bcs in [4, 6]:
@@ -79,18 +100,18 @@ def calcular_riesgo_nutricional(bcs, edad, condicion, etapa, aplicar_senior):
     if etapa == "cachorro" and condicion == "Destete a 4 meses":
         riesgo = "Moderado"
 
-    if condicion in ["Gestación (Segunda mitad)", "Lactancia"]:
+    if condicion in ["Gestación (Segunda mitad)", "Gestación (Final)", "Lactancia"]:
         riesgo = "Alto"
 
     return riesgo
 
 
 def calcular_prioridad_nutricional(bcs, etapa, condicion, edad):
-    """Devuelve (prioridad, recomendación) según el perfil de la mascota."""
+    """Devuelve prioridad nutricional y recomendación inicial."""
     if etapa == "cachorro":
         return "Sostener crecimiento", "Maximizar aporte nutricional balanceado"
 
-    if condicion in ["Gestación (Segunda mitad)", "Lactancia"]:
+    if condicion in ["Gestación (Segunda mitad)", "Gestación (Final)", "Lactancia"]:
         return "Cubrir alta demanda energética", "Aumentar frecuencia de alimentación y calidad"
 
     if bcs < 5:
@@ -99,39 +120,58 @@ def calcular_prioridad_nutricional(bcs, etapa, condicion, edad):
     if bcs > 5:
         return "Controlar peso y energía", "Reducir calorías y aumentar monitoreo"
 
-    # BCS == 5
     if edad >= 7:
         return "Mantener masa magra y prevenir sobrepeso", "Monitoreo frecuente cada 4–8 semanas"
 
     return "Mantener condición corporal", "Monitoreo regular cada 2–4 semanas"
 
 
-def generar_interpretacion_diagnostico(nombre, bcs, estado, mer_final,
-                                       prioridad, condicion, edad, aplicar_senior):
-    """Genera un párrafo con el diagnóstico nutricional automático."""
+def generar_interpretacion_diagnostico(
+    nombre,
+    bcs,
+    estado,
+    mer_final,
+    prioridad,
+    condicion,
+    edad,
+    aplicar_senior,
+):
+    """Genera diagnóstico textual automático."""
     texto = f"{nombre} presenta condición corporal {estado.lower()} (BCS {bcs}/9). "
     texto += f"Su requerimiento energético final estimado es {mer_final:.0f} kcal/día. "
 
     if bcs < 5:
-        texto += ("La prioridad nutricional es recuperar condición corporal. "
-                  "Se recomienda aumentar gradualmente el aporte energético y monitorear peso cada 2–3 semanas.")
+        texto += (
+            "La prioridad nutricional es recuperar condición corporal. "
+            "Se recomienda aumentar gradualmente el aporte energético y monitorear peso cada 2–3 semanas."
+        )
     elif bcs > 5:
-        texto += ("La prioridad nutricional es controlar peso y energía. "
-                  "Se recomienda reducir calorías gradualmente y monitorear peso cada 1–2 semanas.")
+        texto += (
+            "La prioridad nutricional es controlar peso y energía. "
+            "Se recomienda reducir calorías gradualmente y monitorear peso cada 1–2 semanas."
+        )
     else:
         if edad >= 7 and aplicar_senior:
-            texto += ("Como animal senior, la prioridad es mantener masa magra y prevenir sobrepeso. "
-                      "Se recomienda monitoreo frecuente cada 4–8 semanas.")
-        elif condicion in ["Gestación (Segunda mitad)", "Lactancia"]:
-            texto += ("La prioridad nutricional es cubrir la alta demanda energética. "
-                      "Se recomienda aumentar frecuencia de alimentación y monitoreo semanal.")
+            texto += (
+                "Como animal senior, la prioridad es mantener masa magra y prevenir sobrepeso. "
+                "Se recomienda monitoreo frecuente cada 4–8 semanas."
+            )
+        elif condicion in ["Gestación (Segunda mitad)", "Gestación (Final)", "Lactancia"]:
+            texto += (
+                "La prioridad nutricional es cubrir la alta demanda energética. "
+                "Se recomienda aumentar frecuencia de alimentación y monitoreo semanal."
+            )
         else:
-            texto += ("La prioridad es mantener la condición corporal actual. "
-                      "Se recomienda monitoreo regular cada 2–4 semanas.")
+            texto += (
+                "La prioridad es mantener la condición corporal actual. "
+                "Se recomienda monitoreo regular cada 2–4 semanas."
+            )
 
     return texto
 
-# ======================== DEFINICIÓN GLOBAL DE FACTORES ========================
+
+# ======================== FACTORES ENERGÉTICOS ========================
+
 FACTORES_CONDICION = {
     "perro": {
         "adulto": {
@@ -167,7 +207,6 @@ FACTORES_CONDICION = {
     },
 }
 
-# Set of all gestación condition labels (used for BCS logic and descriptions)
 CONDICIONES_GESTACION = {
     "Gestación (Primera mitad)",
     "Gestación (Segunda mitad)",
@@ -175,190 +214,241 @@ CONDICIONES_GESTACION = {
     "Gestación (Final)",
 }
 
-# Gestación conditions corresponding to early phase (first half / inicio)
 CONDICIONES_GESTACION_INICIAL = {
     "Gestación (Primera mitad)",
     "Gestación (Inicio)",
 }
 
-# Gestación conditions corresponding to late phase (second half / final)
 CONDICIONES_GESTACION_FINAL = {
     "Gestación (Segunda mitad)",
     "Gestación (Final)",
 }
 
-# ======================== BLOQUE 2: ESTILO Y LOGO CON BARRA LATERAL ========================
-st.set_page_config(page_title="UYWA Nutritional Diagnostics", layout="wide")
 
-# Estilo global para la aplicación
-st.markdown("""
+# ======================== BLOQUE 2: CONFIGURACIÓN Y ESTILO GLOBAL ========================
+
+st.set_page_config(
+    page_title="UYWA Nutritional Diagnostics",
+    layout="wide",
+)
+
+st.markdown(
+    """
     <style>
     html, body, .stApp, .block-container {
         background: linear-gradient(120deg, #ffffff 0%, #eef4fc 100%) !important;
+        font-size: 18px !important;
     }
+
+    .block-container {
+        padding: 2rem 4rem;
+        max-width: 1500px;
+    }
+
+    h1 {
+        font-size: 2.25rem !important;
+        font-weight: 800 !important;
+        color: #1f2d3d !important;
+    }
+
+    h2 {
+        font-size: 1.75rem !important;
+        font-weight: 750 !important;
+    }
+
+    h3 {
+        font-size: 1.35rem !important;
+        font-weight: 700 !important;
+    }
+
+    p, div, span, label {
+        font-size: 1.02rem;
+    }
+
     section[data-testid="stSidebar"] {
         background-color: #2C3E50 !important;
         color: #fff !important;
     }
+
     section[data-testid="stSidebar"] * {
         color: #fff !important;
     }
+
     .stButton > button {
         background-color: #2176ff;
         color: #fff !important;
-        border-radius: 8px;
+        border-radius: 10px;
         border: none;
-        padding: 0.5rem 1rem !important;
+        padding: 0.65rem 1.1rem !important;
+        font-size: 1rem !important;
+        font-weight: 650 !important;
     }
+
     .stButton > button:hover {
         background-color: #1254d1;
         color: #fff !important;
-        box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2) !important;
+        box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.20) !important;
     }
-    .block-container {
-        padding: 2rem 4rem;
-    }
-    .stNumberInput, .stSelectbox, .stTextInput {
-        background-color: #eef4fc !important;
-        border-radius: 4px;
-        border: 1px solid #d4e4fc !important;
-        padding: 0.5rem;
-    }
-    footer {visibility: hidden !important;}
-    </style>
-""", unsafe_allow_html=True)
 
-# Validar que la variable `user` esté definida
+    .stMetric {
+        font-size: 1rem !important;
+    }
+
+    [data-testid="stMetricValue"] {
+        font-size: 1.65rem !important;
+        font-weight: 800 !important;
+    }
+
+    .stNumberInput, .stSelectbox, .stTextInput, .stTextArea {
+        background-color: #eef4fc !important;
+        border-radius: 6px;
+        border: 1px solid #d4e4fc !important;
+        padding: 0.35rem;
+    }
+
+    div[data-testid="stDataFrame"] {
+        font-size: 1rem !important;
+    }
+
+    footer {
+        visibility: hidden !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+
+# ======================== BLOQUE 3: SIDEBAR ========================
+
 user = st.session_state.get("user", None)
 
-# Configuración de la barra lateral
 with st.sidebar:
     st.image("assets/logo.png", use_container_width=True)
+
     st.markdown(
         """
         <div style="text-align:center;margin-bottom:20px;">
-            <h1 style="font-family:Montserrat,sans-serif;margin:0;color:#fff;">UYWA Nutrition</h1>
-            <p style="font-size:14px;margin:0;color:#fff;">Nutrición de Precisión Basada en Evidencia</p>
+            <h1 style="font-family:Montserrat,sans-serif;margin:0;color:#fff;font-size:1.45rem;">
+                UYWA Nutrition
+            </h1>
+            <p style="font-size:0.9rem;margin:0;color:#fff;">
+                Nutrición de Precisión Basada en Evidencia
+            </p>
             <br>
             <hr style="border:1px solid #fff;">
-            <p style="font-size:13px;color:#fff;margin:0;">📧 uywasas@gmail.com</p>
-            <p style="font-size:11px;color:#fff;margin:0;">Derechos reservados © 2026</p>
+            <p style="font-size:0.85rem;color:#fff;margin:0;">📧 uywasas@gmail.com</p>
+            <p style="font-size:0.75rem;color:#fff;margin:0;">Derechos reservados © 2026</p>
         </div>
         """,
         unsafe_allow_html=True,
     )
-    # Verificar el estado del usuario
+
     if user:
         plan = user.get("plan", "Sin plan")
         expires = user.get("expires", None)
-    
+
         st.success(f"Acceso {plan} activado")
-    
+
         if expires:
             st.caption(f"Válido hasta: {expires}")
     else:
         st.warning("Por favor, inicia sesión.")
 
-# ======================== BLOQUE 3: LOGIN ========================
+
+# ======================== BLOQUE 4: LOGIN Y PERFIL ========================
 
 def login():
     """
-    Maneja la autenticación de usuario, valida estado activo y fecha de expiración.
+    Maneja autenticación de usuario.
     """
     st.title("Iniciar sesión")
+
+    st.markdown(
+        "Ingresa tus credenciales para acceder al sistema de diagnóstico nutricional."
+    )
 
     username = st.text_input("Usuario", key="login_usuario")
     password = st.text_input("Contraseña", type="password", key="login_password")
 
-    if st.button("Entrar"):
-        username_clean = username.strip().lower()
-        user = USERS_DB.get(username_clean)
+    if st.button("Entrar", use_container_width=True):
+        authenticated, user_data, message = authenticate_user(username, password)
 
-        if user and user.get("password") == password:
-            is_active, message = is_user_active(user)
-
-            if not is_active:
-                st.error(message)
-                st.stop()
+        if authenticated:
+            username_clean = str(username or "").strip().lower()
 
             st.session_state["logged_in"] = True
             st.session_state["usuario"] = username_clean
-            st.session_state["user"] = user
+            st.session_state["user"] = user_data
 
-            st.success(f"Bienvenido, {user.get('name', username_clean)}!")
+            st.success(f"Bienvenido, {user_data.get('name', username_clean)}.")
             st.rerun()
-
         else:
-            st.error("Usuario o contraseña incorrectos.")
+            st.error(message or "Usuario o contraseña incorrectos.")
 
-    else:
-        if not st.session_state.get("logged_in", False):
-            st.warning("Por favor, inicia sesión para acceder al contenido.")
+    if not st.session_state.get("logged_in", False):
+        st.warning("Por favor, inicia sesión para acceder al contenido.")
 
-# Comprobar si el usuario está autenticado
+
 if not st.session_state.get("logged_in", False):
     login()
     st.stop()
 
-# Recuperar la información del usuario autenticado
+
 user = st.session_state.get("user", None)
+
 if not user:
     st.error("El usuario no está autenticado.")
     st.stop()
 
-# ======================== BLOQUE 3.1: CARGA DEL PERFIL ========================
 
-# Carga el perfil asociado al usuario autenticado
 profile = load_profile(user) or {}
 
-# Validar que el perfil tenga valores predeterminados si está vacío
-profile.setdefault("mascota", {
-    "nombre": "",
-    "especie": "perro",
-    "edad": 1.0,
-    "peso": 12.0,
-    "etapa": "adulto",
-    "bcs": 5
-})
+profile.setdefault(
+    "mascota",
+    {
+        "nombre": "",
+        "especie": "perro",
+        "edad": 1.0,
+        "peso": 12.0,
+        "etapa": "adulto",
+        "bcs": 5,
+    },
+)
+
+st.session_state["profile"] = profile
+
 
 def update_and_save_profile(updated_profile):
     """
-    Actualiza el perfil del usuario y guarda los datos.
+    Actualiza y guarda el perfil del usuario.
     """
-    save_profile(user, updated_profile)
+    saved = save_profile(user, updated_profile)
+
+    if saved is False:
+        st.error("No se pudo guardar el perfil.")
+        return
+
     st.session_state["profile"] = updated_profile
     st.success("Perfil actualizado exitosamente.")
 
-# ======================== BLOQUE 4: UTILIDADES DE SESIÓN ========================
-def safe_float(val, default=0.0):
-    try:
-        if isinstance(val, str):
-            val = val.replace(",", ".")
-        return float(val)
-    except Exception:
-        return default
 
 def clean_state(keys_prefix, valid_names):
+    """
+    Limpia claves antiguas de session_state asociadas a listas dinámicas.
+    """
     for key in list(st.session_state.keys()):
         for prefix in keys_prefix:
             if key.startswith(prefix):
                 found = False
+
                 for n in valid_names:
                     if key.endswith(f"{n}_incl_input") or key.endswith(f"{n}_input"):
                         found = True
                         break
+
                 if not found:
                     del st.session_state[key]
-
-# ======================== BLOQUE 5: TITULO Y TABS PRINCIPALES ========================
-st.title("Gestión y Análisis de Dietas")
-
-tabs = st.tabs([
-    "Perfil de Mascota",
-    "Análisis",
-    "Resumen y Exportar",
-    "Seguimiento del Paciente",
-])
 
 # ======================== BLOQUE 5.1: TAB PERFIL EDITABLE + CÁLCULOS COMPLETO ========================
 with tabs[0]:
