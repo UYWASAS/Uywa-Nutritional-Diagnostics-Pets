@@ -450,6 +450,16 @@ def clean_state(keys_prefix, valid_names):
                 if not found:
                     del st.session_state[key]
 
+# ======================== BLOQUE 5: TÍTULO Y TABS PRINCIPALES ========================
+
+st.title("Gestión y Análisis de Dietas")
+
+tabs = st.tabs([
+    "Perfil de Mascota",
+    "Análisis",
+    "Resumen y Exportar",
+    "Seguimiento del Paciente",
+])
 # ======================== BLOQUE 5.1: TAB PERFIL EDITABLE + CÁLCULOS COMPLETO ========================
 with tabs[0]:
     st.subheader("Perfil y Requerimientos Energéticos de la Mascota")
