@@ -828,6 +828,22 @@ def show_food_analysis():
     me_por_100g = energy["ME"]
     me_total_kcal = (me_por_100g / 100.0) * gramos_input
 
+    # ── Guardar resultados actuales para resumen, exportación y seguimiento ──
+    st.session_state["me_alimento_actual"] = me_por_100g
+    st.session_state["energia_aportada_actual"] = me_total_kcal
+
+    if st.session_state.get("energia_actual", None):
+        mer_tmp = st.session_state.get("energia_actual")
+        st.session_state["cobertura_energia_actual"] = (
+            (me_total_kcal / mer_tmp) * 100.0 if mer_tmp > 0 else 0.0
+        )
+        st.session_state["gramos_recomendados_actual"] = (
+            mer_tmp / (me_por_100g / 100.0) if me_por_100g > 0 else 0.0
+        )
+    else:
+        st.session_state["cobertura_energia_actual"] = 0.0
+        st.session_state["gramos_recomendados_actual"] = 0.0
+    
     # MER del animal desde sesión (calculado en Tab 1)
     mer_animal = st.session_state.get("energia_actual", None)
 
