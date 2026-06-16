@@ -5,6 +5,7 @@ import uuid
 import logging
 import pandas as pd
 from datetime import datetime
+from html import escape
 
 
 # ---------------------------------------------------------------------------
@@ -15,26 +16,13 @@ def generar_diagnostico_resumen(nombre, bcs, estado, mer_final,
                                  prioridad, condicion, edad, aplicar_senior):
     """
     Genera el párrafo de diagnóstico nutricional para el informe de resumen.
-
-    Parámetros:
-        nombre (str)        : Nombre de la mascota.
-        bcs (int)           : Body Condition Score (1-9).
-        estado (str)        : Estado corporal textual.
-        mer_final (float)   : MER final ajustado (kcal/día).
-        prioridad (str)     : Prioridad nutricional.
-        condicion (str)     : Condición fisiológica.
-        edad (float)        : Edad en años.
-        aplicar_senior (bool): Si se aplica el factor senior.
-
-    Retorna:
-        str: Párrafo de diagnóstico.
     """
     texto = f"{nombre} presenta condición corporal {estado.lower()} (BCS {bcs}/9). "
     texto += f"Su requerimiento energético final estimado es de {mer_final:.1f} kcal/día. "
     texto += f"La prioridad nutricional es {prioridad.lower()}."
 
     if aplicar_senior and edad >= 7:
-        texto += " Se ha aplicado factor de ajuste senior (0.85×)."
+        texto += " Se considera ajuste senior dentro de la evaluación energética."
 
     condicion_lower = condicion.lower()
     if any(g in condicion_lower for g in ["gestaci", "lactancia"]):
@@ -48,22 +36,9 @@ def generar_recomendaciones(estado, bcs, edad, condicion, cobertura,
                              cob_pb=None, cob_ee=None):
     """
     Genera la lista de recomendaciones clínico-nutricionales.
-
-    Parámetros:
-        estado (str)          : Estado corporal textual.
-        bcs (int)             : Body Condition Score (1-9).
-        edad (float)          : Edad en años.
-        condicion (str)       : Condición fisiológica.
-        cobertura (float|None): Cobertura energética en %.
-        cob_pb (float|None)   : Cobertura de proteína en %.
-        cob_ee (float|None)   : Cobertura de grasa en %.
-
-    Retorna:
-        list[str]: Lista de recomendaciones.
     """
     recomendaciones = []
 
-    # Monitoreo según BCS
     if bcs == 5:
         recomendaciones.append(
             "Monitoreo de peso cada 2–4 semanas para mantener la condición corporal actual."
@@ -77,7 +52,6 @@ def generar_recomendaciones(estado, bcs, edad, condicion, cobertura,
             "Monitoreo bisemanal de peso durante el proceso de reducción de peso."
         )
 
-    # Ajuste de ración según cobertura energética
     if cobertura is not None:
         if cobertura < 90:
             recomendaciones.append(
@@ -88,29 +62,26 @@ def generar_recomendaciones(estado, bcs, edad, condicion, cobertura,
                 "Reducir la cantidad de alimento o evaluar una alternativa con menor densidad energética."
             )
 
-    # Pacientes senior
     if edad >= 7:
         recomendaciones.append(
             "Realizar evaluación nutricional cada 6–8 semanas dada la edad avanzada del paciente."
         )
 
-    # Cobertura de proteína
     if cob_pb is not None and cob_pb < 90:
         recomendaciones.append(
             "Considerar complementación proteica para cubrir el requerimiento mínimo."
         )
 
-    # Cobertura de grasa
     if cob_ee is not None and cob_ee < 90:
         recomendaciones.append(
             "Evaluar el aporte de ácidos grasos esenciales en la dieta."
         )
 
-    # Gestación / lactancia
     condicion_lower = condicion.lower()
     if "gestaci" in condicion_lower:
         recomendaciones.append("Realizar valoración nutricional pre-parto.")
         recomendaciones.append("Preparar plan nutricional para la fase de lactancia.")
+
     if "lactancia" in condicion_lower:
         recomendaciones.append(
             "Aumentar la frecuencia de alimentación para sostener la producción de leche."
@@ -124,9 +95,6 @@ def generar_decision_resumen(cobertura, energia_aportada, mer_final,
                               cob_pb=None, cob_ee=None):
     """
     Genera la decisión ejecutiva de la evaluación nutricional.
-
-    Retorna:
-        tuple: (resultado: str, diferencia_kcal: float, interpretacion: str)
     """
     if cobertura < 90:
         resultado = "No cubre el requerimiento energético"
@@ -144,7 +112,9 @@ def generar_decision_resumen(cobertura, energia_aportada, mer_final,
         f"lo que representa una cobertura del {cobertura:.1f}%. "
     )
 
-    if abs(diferencia) < 50:
+    tolerancia_kcal = max(25.0, mer_final * 0.05)
+
+    if abs(diferencia) <= tolerancia_kcal:
         interpretacion += "La ración está adecuadamente ajustada."
     elif diferencia < 0:
         interpretacion += f"Se recomienda aumentar a {gramos_recomendados:.0f} g/día."
@@ -155,12 +125,7 @@ def generar_decision_resumen(cobertura, energia_aportada, mer_final,
 
 
 # ---------------------------------------------------------------------------
-# Exportación a Excel
-# ---------------------------------------------------------------------------
-
-
-# ---------------------------------------------------------------------------
-# Ficha Maestra de Seguimiento Nutricional (5 hojas)
+# Ficha Maestra de Seguimiento Nutricional
 # ---------------------------------------------------------------------------
 
 def _safe_float(value, default=0.0):
@@ -177,9 +142,8 @@ def generar_id_visita():
 
 
 def generar_uuid_paciente(nombre_especie):
-    """Genera UUID determinístico para el paciente (mismo para todas sus visitas)."""
+    """Genera UUID determinístico para el paciente."""
     key = str(nombre_especie).lower()
-    # NAMESPACE_OID is appropriate for application-specific non-DNS identifiers
     return str(uuid.uuid5(uuid.NAMESPACE_OID, key))
 
 
@@ -187,22 +151,7 @@ def crear_visita_dict(mascota, datos_energeticos, datos_alimento,
                       mer_final, senior_applied, cob_pb, cob_ee,
                       recomendaciones=None, objetivo_nutricional=""):
     """
-    Crea diccionario con 35 campos para 1 visita.
-    Estructura: 1 diccionario = 1 fila en VISITAS_SEGUIMIENTO.
-
-    Parámetros:
-        mascota (dict)              : Datos de la mascota (nombre, especie).
-        datos_energeticos (dict)    : Valores energéticos y diagnóstico.
-        datos_alimento (dict)       : Datos del alimento evaluado.
-        mer_final (float)           : MER final ajustado (kcal/día).
-        senior_applied (bool)       : Si se aplicó ajuste senior.
-        cob_pb (float|None)         : Cobertura proteína (%).
-        cob_ee (float|None)         : Cobertura grasa (%).
-        recomendaciones (list|None) : Lista de recomendaciones. Si None, lee de datos_energeticos.
-        objetivo_nutricional (str)  : Objetivo nutricional; se infiere del BCS si está vacío.
-
-    Retorna:
-        dict: 35 campos para la fila de VISITAS_SEGUIMIENTO.
+    Crea diccionario con campos para una visita.
     """
     if recomendaciones is None:
         recomendaciones = datos_energeticos.get("recomendaciones", [])
@@ -212,6 +161,7 @@ def crear_visita_dict(mascota, datos_energeticos, datos_alimento,
     fecha_iso = ahora.strftime("%Y-%m-%d")
 
     bcs = datos_energeticos.get("bcs", 5)
+
     if objetivo_nutricional == "":
         if bcs < 5:
             objetivo_nutricional = "Recuperar"
@@ -254,7 +204,8 @@ def crear_visita_dict(mascota, datos_energeticos, datos_alimento,
         "cobertura_energia_pct": round(cobertura, 1),
         "gramos_recomendados_dia": round(_safe_float(datos_alimento.get("recomendados", 0)), 0),
         "diferencia_gramos_dia": round(
-            _safe_float(datos_alimento.get("recomendados", 0)) - _safe_float(datos_alimento.get("gramos", 0)), 1
+            _safe_float(datos_alimento.get("recomendados", 0))
+            - _safe_float(datos_alimento.get("gramos", 0)), 1
         ),
         "cobertura_proteina_pct": round(_safe_float(cob_pb), 1) if cob_pb is not None else "",
         "cobertura_grasa_pct": round(_safe_float(cob_ee), 1) if cob_ee is not None else "",
@@ -268,6 +219,7 @@ def crear_visita_dict(mascota, datos_energeticos, datos_alimento,
         "fuente_dato": "app",
         "permitir_edicion": True,
     }
+
     return visita
 
 
@@ -275,30 +227,7 @@ def exportar_ficha_maestra_excel(mascota, datos_energeticos, datos_alimento,
                                   mer_final, senior_applied, recomendaciones,
                                   nutrientes_ref, cob_pb, cob_ee):
     """
-    Genera archivo Excel con 6 hojas para seguimiento nutricional del paciente.
-
-    Hojas:
-        1. RESUMEN_ACTUAL          - Visualización humana (NO para lectura automática).
-        2. VISITAS_SEGUIMIENTO     - Base histórica (1 fila = 1 visita, 35 columnas).
-        3. ANALISIS_ALIMENTO       - Composición proximal (14 columnas).
-        4. REQUERIMIENTOS_TECNICOS - Tabla referencia nutrientes (7 columnas).
-        5. METADATOS               - Trazabilidad y versioning (12 pares clave-valor).
-        6. CONFIG_APP              - Configuración de la app (4 pares clave-valor).
-
-    Parámetros:
-        mascota (dict)          : Datos de la mascota (nombre, especie).
-        datos_energeticos (dict): Valores energéticos y diagnóstico.
-        datos_alimento (dict)   : Datos del alimento evaluado.
-        mer_final (float)       : MER final ajustado (kcal/día).
-        senior_applied (bool)   : Si se aplicó ajuste senior.
-        recomendaciones (list)  : Lista de recomendaciones.
-        nutrientes_ref (dict)   : Referencia nutricional filtrada por especie
-                                  (e.g. NUTRIENTES_REFERENCIA_PERRO).
-        cob_pb (float|None)     : Cobertura proteína (%).
-        cob_ee (float|None)     : Cobertura grasa (%).
-
-    Retorna:
-        bytes: Contenido del archivo Excel.
+    Genera archivo Excel con hojas de seguimiento nutricional.
     """
     output = io.BytesIO()
     especie = mascota.get("especie", "perro").lower()
@@ -316,13 +245,6 @@ def exportar_ficha_maestra_excel(mascota, datos_energeticos, datos_alimento,
             "valign": "vcenter",
         })
 
-        label_fmt = workbook.add_format({
-            "bg_color": "#ECF0F3",
-            "bold": True,
-            "border": 1,
-        })
-
-        # ── HOJA 1: RESUMEN_ACTUAL ─────────────────────────────────────────
         recs_str = (
             " | ".join(recomendaciones)
             if isinstance(recomendaciones, list)
@@ -345,6 +267,8 @@ def exportar_ficha_maestra_excel(mascota, datos_energeticos, datos_alimento,
             "",
             "ALIMENTO EVALUADO",
             "Nombre alimento",
+            "Marca",
+            "Ingredientes",
             "Gramos/día",
             "ME (kcal/100g)",
             "Energía aportada",
@@ -372,6 +296,8 @@ def exportar_ficha_maestra_excel(mascota, datos_energeticos, datos_alimento,
             "",
             "",
             datos_alimento.get("alimento", "—"),
+            datos_alimento.get("marca", ""),
+            datos_alimento.get("ingredientes", ""),
             f"{_safe_float(datos_alimento.get('gramos', 0)):.1f} g",
             f"{_safe_float(datos_alimento.get('me', 0)):.2f}",
             f"{_safe_float(datos_alimento.get('aporte', 0)):.1f} kcal/día",
@@ -387,16 +313,16 @@ def exportar_ficha_maestra_excel(mascota, datos_energeticos, datos_alimento,
         df_resumen.to_excel(writer, sheet_name="RESUMEN_ACTUAL", index=False)
         ws_resumen = writer.sheets["RESUMEN_ACTUAL"]
         ws_resumen.set_column(0, 0, 35)
-        ws_resumen.set_column(1, 1, 50)
+        ws_resumen.set_column(1, 1, 70)
         for col_idx, col_name in enumerate(df_resumen.columns):
             ws_resumen.write(0, col_idx, col_name, header_fmt)
 
-        # ── HOJA 2: VISITAS_SEGUIMIENTO (35 columnas) ─────────────────────
         visita_actual = crear_visita_dict(
             mascota, datos_energeticos, datos_alimento,
             mer_final, senior_applied, cob_pb, cob_ee,
             recomendaciones=recomendaciones,
         )
+
         df_visitas = pd.DataFrame([visita_actual])
         df_visitas.to_excel(writer, sheet_name="VISITAS_SEGUIMIENTO", index=False)
         ws_visitas = writer.sheets["VISITAS_SEGUIMIENTO"]
@@ -405,38 +331,40 @@ def exportar_ficha_maestra_excel(mascota, datos_energeticos, datos_alimento,
         for col_idx, col_name in enumerate(df_visitas.columns):
             ws_visitas.write(0, col_idx, col_name, header_fmt)
 
-        # ── HOJA 3: ANALISIS_ALIMENTO (14 columnas + id_visita) ───────────
-        def _or_empty(val):
-            return val if val not in (None, 0, 0.0, "") else ""
-
         id_visita_actual = visita_actual["id_visita"]
 
         alimento_data = {
             "id_visita": [id_visita_actual],
             "alimento": [datos_alimento.get("alimento", "—")],
-            "proteina_bruta_pct": [_or_empty(datos_alimento.get("pb"))],
-            "grasa_ee_pct": [_or_empty(datos_alimento.get("ee"))],
-            "cenizas_pct": [_or_empty(datos_alimento.get("ash"))],
-            "humedad_pct": [_or_empty(datos_alimento.get("humidity"))],
-            "fibra_cruda_pct": [_or_empty(datos_alimento.get("fc"))],
-            "ena_pct": [_or_empty(datos_alimento.get("ena"))],
-            "materia_seca_pct": [_or_empty(datos_alimento.get("ms"))],
-            "energia_bruta_kcal_100g": [_or_empty(datos_alimento.get("ge"))],
-            "energia_digestible_kcal_100g": [_or_empty(datos_alimento.get("de"))],
-            "energia_metabolizable_kcal_100g": [_or_empty(datos_alimento.get("me"))],
-            "precio_unitario": [datos_alimento.get("precio", "")],
+            "marca": [datos_alimento.get("marca", "")],
+            "especie_comercial": [datos_alimento.get("especie_comercial", "")],
+            "etapa_comercial": [datos_alimento.get("etapa_comercial", "")],
+            "ingredientes": [datos_alimento.get("ingredientes", "")],
+            "fuente_pb": [datos_alimento.get("fuente_pb", "")],
+            "fuente_ee": [datos_alimento.get("fuente_ee", "")],
+            "fuente_fc": [datos_alimento.get("fuente_fc", "")],
+            "proteina_bruta_pct": [datos_alimento.get("pb", "")],
+            "grasa_ee_pct": [datos_alimento.get("ee", "")],
+            "cenizas_pct": [datos_alimento.get("ash", "")],
+            "humedad_pct": [datos_alimento.get("humidity", "")],
+            "fibra_cruda_pct": [datos_alimento.get("fc", "")],
+            "ena_pct": [datos_alimento.get("ena", "")],
+            "materia_seca_pct": [datos_alimento.get("ms", "")],
+            "energia_bruta_kcal_100g": [datos_alimento.get("ge", "")],
+            "energia_digestible_kcal_100g": [datos_alimento.get("de", "")],
+            "energia_metabolizable_kcal_100g": [datos_alimento.get("me", "")],
+            "precio_usd_kg": [datos_alimento.get("precio", "")],
             "distribuidor": [datos_alimento.get("distribuidor", "")],
         }
+
         df_alimento = pd.DataFrame(alimento_data)
         df_alimento.to_excel(writer, sheet_name="ANALISIS_ALIMENTO", index=False)
         ws_alimento = writer.sheets["ANALISIS_ALIMENTO"]
-        ws_alimento.set_column(0, 0, 40)
-        for col_idx in range(1, len(df_alimento.columns)):
-            ws_alimento.set_column(col_idx, col_idx, 22)
+        for col_idx in range(len(df_alimento.columns)):
+            ws_alimento.set_column(col_idx, col_idx, 24)
         for col_idx, col_name in enumerate(df_alimento.columns):
             ws_alimento.write(0, col_idx, col_name, header_fmt)
 
-        # ── HOJA 4: REQUERIMIENTOS_TECNICOS (7 columnas) ──────────────────
         requisitos_rows = []
         try:
             nutrientes_dict = nutrientes_ref.get(etapa, {})
@@ -451,12 +379,24 @@ def exportar_ficha_maestra_excel(mascota, datos_energeticos, datos_alimento,
                     "fuente_modelo": "NRC 2006",
                 })
         except Exception as exc:
-            logging.warning(f"Error al extraer requerimientos técnicos para {especie}/{etapa}: {exc}")
+            logging.warning(
+                "Error al extraer requerimientos técnicos para %s/%s: %s",
+                especie,
+                etapa,
+                exc,
+            )
 
         df_requisitos = pd.DataFrame(
             requisitos_rows,
-            columns=["nutriente", "unidad", "valor_minimo", "valor_maximo",
-                     "especie", "etapa_vida", "fuente_modelo"],
+            columns=[
+                "nutriente",
+                "unidad",
+                "valor_minimo",
+                "valor_maximo",
+                "especie",
+                "etapa_vida",
+                "fuente_modelo",
+            ],
         )
         df_requisitos.to_excel(writer, sheet_name="REQUERIMIENTOS_TECNICOS", index=False)
         ws_req = writer.sheets["REQUERIMIENTOS_TECNICOS"]
@@ -465,10 +405,10 @@ def exportar_ficha_maestra_excel(mascota, datos_energeticos, datos_alimento,
         for col_idx, col_name in enumerate(df_requisitos.columns):
             ws_req.write(0, col_idx, col_name, header_fmt)
 
-        # ── HOJA 5: METADATOS (12 pares clave-valor) ──────────────────────
         uuid_paciente = generar_uuid_paciente(
             f"{mascota.get('nombre', 'paciente')}_{especie}"
         )
+
         fecha_hoy = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         fecha_hoy_date = datetime.now().strftime("%Y-%m-%d")
 
@@ -487,6 +427,7 @@ def exportar_ficha_maestra_excel(mascota, datos_energeticos, datos_alimento,
             "ultima_modificacion_por",
             "observacion_general",
         ]
+
         metadatos_values = [
             "",
             uuid_paciente,
@@ -511,7 +452,6 @@ def exportar_ficha_maestra_excel(mascota, datos_energeticos, datos_alimento,
         for col_idx, col_name in enumerate(df_metadatos.columns):
             ws_meta.write(0, col_idx, col_name, header_fmt)
 
-        # ── HOJA 6: CONFIG_APP ─────────────────────────────────────────────
         config_labels = [
             "CONFIGURACIÓN DE LA APP",
             "usar_ajuste_senior",
@@ -519,6 +459,7 @@ def exportar_ficha_maestra_excel(mascota, datos_energeticos, datos_alimento,
             "umbral_cobertura_minima",
             "umbral_cobertura_maxima",
         ]
+
         config_values = [
             "",
             True,
@@ -546,41 +487,43 @@ def exportar_a_html(mascota, datos_energeticos, datos_alimento,
                     mer_final, diagnostico, recomendaciones):
     """
     Genera un HTML descargable profesional con el informe nutricional completo.
-
-    Parámetros:
-        mascota (dict)            : Datos de la mascota.
-        datos_energeticos (dict)  : Valores energéticos y diagnóstico.
-        datos_alimento (dict)     : Datos del alimento evaluado.
-        mer_final (float)         : MER final ajustado (kcal/día).
-        diagnostico (str)         : Párrafo de diagnóstico nutricional.
-        recomendaciones (list)    : Lista de recomendaciones de texto.
-
-    Retorna:
-        str: Contenido HTML del informe.
     """
     nombre = mascota.get("nombre", "—")
     especie = mascota.get("especie", "—").capitalize()
-    edad = datos_energeticos.get("edad", 0)
-    peso = datos_energeticos.get("peso", 0)
+    edad = _safe_float(datos_energeticos.get("edad", 0))
+    peso = _safe_float(datos_energeticos.get("peso", 0))
     bcs = datos_energeticos.get("bcs", 5)
     estado_corporal = datos_energeticos.get("estado_corporal", "—")
     condicion = datos_energeticos.get("condicion", "—")
-    rer = datos_energeticos.get("rer", 0)
-    mer_base = datos_energeticos.get("mer_base", 0)
+    rer = _safe_float(datos_energeticos.get("rer", 0))
+    mer_base = _safe_float(datos_energeticos.get("mer_base", 0))
     riesgo = datos_energeticos.get("riesgo_nutricional", "—")
 
     alimento = datos_alimento.get("alimento", "—")
-    me = datos_alimento.get("me", 0)
-    gramos = datos_alimento.get("gramos", 0)
-    aporte = datos_alimento.get("aporte", 0)
-    cobertura = datos_alimento.get("cobertura", 0)
-    recomendados = datos_alimento.get("recomendados", 0)
-    rango_min = datos_alimento.get("rango_min", 0)
-    rango_max = datos_alimento.get("rango_max", 0)
+    me = _safe_float(datos_alimento.get("me", 0))
+    gramos = _safe_float(datos_alimento.get("gramos", 0))
+    aporte = _safe_float(datos_alimento.get("aporte", 0))
+    cobertura = _safe_float(datos_alimento.get("cobertura", 0))
+    recomendados = _safe_float(datos_alimento.get("recomendados", 0))
+    rango_min = _safe_float(datos_alimento.get("rango_min", 0))
+    rango_max = _safe_float(datos_alimento.get("rango_max", 0))
     decision = datos_alimento.get("decision", "—")
     interpretacion = datos_alimento.get("interpretacion", "—")
 
-    recs_html = "\n".join(f"            <li>{rec}</li>" for rec in recomendaciones)
+    nombre_html = escape(str(nombre))
+    especie_html = escape(str(especie))
+    estado_corporal_html = escape(str(estado_corporal))
+    condicion_html = escape(str(condicion))
+    riesgo_html = escape(str(riesgo))
+    alimento_html = escape(str(alimento))
+    decision_html = escape(str(decision))
+    diagnostico_html = escape(str(diagnostico))
+    interpretacion_html = escape(str(interpretacion))
+
+    recs_html = "\n".join(
+        f"            <li>{escape(str(rec))}</li>"
+        for rec in recomendaciones
+    )
 
     html = f"""<!DOCTYPE html>
 <html lang="es">
@@ -630,7 +573,7 @@ def exportar_a_html(mascota, datos_energeticos, datos_alimento,
         }}
         .data-row:last-child {{ border-bottom: none; }}
         .data-label {{ font-weight: 600; color: #2c3e50; }}
-        .data-value {{ color: #34495e; }}
+        .data-value {{ color: #34495e; text-align: right; max-width: 55%; }}
         .highlight {{
             background: #ecf0f3;
             padding: 12px;
@@ -683,11 +626,11 @@ def exportar_a_html(mascota, datos_energeticos, datos_alimento,
         <div class="section-title">&#128203; RESUMEN DEL PACIENTE</div>
         <div class="data-row">
             <span class="data-label">Nombre:</span>
-            <span class="data-value">{nombre}</span>
+            <span class="data-value">{nombre_html}</span>
         </div>
         <div class="data-row">
             <span class="data-label">Especie:</span>
-            <span class="data-value">{especie}</span>
+            <span class="data-value">{especie_html}</span>
         </div>
         <div class="data-row">
             <span class="data-label">Edad:</span>
@@ -703,21 +646,21 @@ def exportar_a_html(mascota, datos_energeticos, datos_alimento,
         </div>
         <div class="data-row">
             <span class="data-label">Estado corporal:</span>
-            <span class="data-value">{estado_corporal}</span>
+            <span class="data-value">{estado_corporal_html}</span>
         </div>
         <div class="data-row">
             <span class="data-label">Condici&#243;n fisiol&#243;gica:</span>
-            <span class="data-value">{condicion}</span>
+            <span class="data-value">{condicion_html}</span>
         </div>
         <div class="data-row">
             <span class="data-label">Riesgo nutricional:</span>
-            <span class="data-value">{riesgo}</span>
+            <span class="data-value">{riesgo_html}</span>
         </div>
     </div>
 
     <div class="section">
         <div class="section-title">&#129514; DIAGN&#211;STICO NUTRICIONAL</div>
-        <div class="diagnostic-box">{diagnostico}</div>
+        <div class="diagnostic-box">{diagnostico_html}</div>
     </div>
 
     <div class="section">
@@ -740,7 +683,7 @@ def exportar_a_html(mascota, datos_energeticos, datos_alimento,
         <div class="section-title">&#127869;&#65039; AN&#193;LISIS DEL ALIMENTO</div>
         <div class="data-row">
             <span class="data-label">Alimento:</span>
-            <span class="data-value">{alimento}</span>
+            <span class="data-value">{alimento_html}</span>
         </div>
         <div class="data-row">
             <span class="data-label">ME:</span>
@@ -763,8 +706,8 @@ def exportar_a_html(mascota, datos_energeticos, datos_alimento,
     <div class="section">
         <div class="section-title">&#9989; DECISI&#211;N NUTRICIONAL</div>
         <div class="highlight">
-            <strong>{decision}</strong>
-            <p style="margin-top:8px;font-size:14px;">{interpretacion}</p>
+            <strong>{decision_html}</strong>
+            <p style="margin-top:8px;font-size:14px;">{interpretacion_html}</p>
         </div>
     </div>
 
@@ -794,4 +737,5 @@ def exportar_a_html(mascota, datos_energeticos, datos_alimento,
 </div>
 </body>
 </html>"""
+
     return html
