@@ -665,18 +665,59 @@ _FOODS_FALLBACK = {
     },
 }
 
+def validate_proximal_composition(food_data: dict) -> tuple[bool, str, float]:
+    """
+    Valida que la composición proximal sea coherente.
+
+    Retorna:
+        tuple:
+            - bool: True si la composición es válida.
+            - str: mensaje descriptivo.
+            - float: suma proximal sin ENA.
+    """
+    required_keys = ["PB", "EE", "Ash", "Humidity", "FC"]
+
+    for key in required_keys:
+        if key not in food_data:
+            return False, f"Falta el componente '{key}' en el alimento.", 0.0
+
+        try:
+            value = float(food_data[key])
+        except (ValueError, TypeError):
+            return False, f"El componente '{key}' no es numérico.", 0.0
+
+        if value < 0:
+            return False, f"El componente '{key}' no puede ser negativo.", 0.0
+
+        if value > 100:
+            return False, f"El componente '{key}' no puede superar 100%.", 0.0
+
+    suma = sum(float(food_data[key]) for key in required_keys)
+
+    if suma > 100:
+        return (
+            False,
+            f"La suma PB + EE + Cenizas + Humedad + FC es {suma:.2f}%. Debe ser ≤ 100%.",
+            suma,
+        )
+
+    return True, "Composición proximal válida.", suma
 
 def calculate_ena(food_data):
-    """Calcula el Extracto No Nitrogenado (carbohidratos disponibles) por diferencia."""
-    ENA = (
-        100
-        - food_data["PB"]
-        - food_data["EE"]
-        - food_data["Ash"]
-        - food_data["Humidity"]
-        - food_data["FC"]
-    )
-    return max(0.0, round(ENA, 2))
+    """
+    Calcula el Extracto No Nitrogenado por diferencia.
+
+    Si la composición proximal es inválida, devuelve 0.0 por compatibilidad,
+    pero registra una advertencia.
+    """
+    is_valid, message, suma = validate_proximal_composition(food_data)
+
+    if not is_valid:
+        logging.warning("Composición proximal inválida para ENA: %s", message)
+        return 0.0
+
+    ena = 100.0 - suma
+    return round(ena, 2)
 
 
 def calculate_energy(food_data):
@@ -693,11 +734,16 @@ def calculate_energy(food_data):
     Retorna:
         dict con GE, ENA, MS, FC_MS, DE_pct, DE y ME.
     """
-    PB = food_data["PB"]
-    EE = food_data["EE"]
-    Ash = food_data["Ash"]
-    Humidity = food_data["Humidity"]
-    FC = food_data["FC"]
+    is_valid, message, _ = validate_proximal_composition(food_data)
+
+    if not is_valid:
+        raise ValueError(message)
+
+    PB = float(food_data["PB"])
+    EE = float(food_data["EE"])
+    Ash = float(food_data["Ash"])
+    Humidity = float(food_data["Humidity"])
+    FC = float(food_data["FC"])
 
     ENA = calculate_ena(food_data)
 
@@ -805,8 +851,8 @@ FOODS: dict = _foods_cache if _foods_cache else _FOODS_FALLBACK
 
 
 def get_food_names():
-    """Devuelve la lista de nombres de alimentos disponibles."""
-    return list(FOODS.keys())
+    """Devuelve la lista ordenada de nombres de alimentos disponibles."""
+    return sorted(list(FOODS.keys()))
 
 
 def get_food_data(food_name):
