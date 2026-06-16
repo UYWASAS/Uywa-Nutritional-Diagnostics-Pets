@@ -915,9 +915,13 @@ def show_food_analysis():
         cob_pb = (gramos_pb / req_pb_g * 100.0) if req_pb_g and req_pb_g > 0 else None
         cob_ee = (gramos_ee / req_ee_g * 100.0) if req_ee_g and req_ee_g > 0 else None
 
+        # Guardar coberturas reales para seguimiento del paciente
+        st.session_state["cobertura_proteina_actual"] = cob_pb
+        st.session_state["cobertura_grasa_actual"] = cob_ee
+        st.session_state["cobertura_energia_actual"] = cobertura_energetica_pct
+        st.session_state["gramos_recomendados_actual"] = gramos_recomendados
+
         if cob_pb is not None or cob_ee is not None:
-            col_p, col_e_diag = st.columns(2)
-            if cob_pb is not None:
                 pb_estado = (
                     "✓ Adecuada" if 90 <= cob_pb <= 110
                     else ("⚠ Insuficiente" if cob_pb < 90 else "⚠ Excedida")
