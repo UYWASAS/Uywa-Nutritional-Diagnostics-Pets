@@ -748,7 +748,32 @@ def show_food_analysis():
     edited_food_data = dict(food_data)
     for col, key in EDIT_COLS.items():
         edited_food_data[key] = st.session_state[session_key][col]
+    
+    # ── Validación de composición proximal editada ───────────────────────────
+    suma_proximal = (
+        edited_food_data.get("PB", 0.0)
+        + edited_food_data.get("EE", 0.0)
+        + edited_food_data.get("Ash", 0.0)
+        + edited_food_data.get("Humidity", 0.0)
+        + edited_food_data.get("FC", 0.0)
+    )
 
+    st.session_state["analysis_food_data_edited"] = edited_food_data.copy()
+    st.session_state["analysis_food_name_edited"] = food_name
+    st.session_state["analysis_food_proximal_sum"] = suma_proximal
+
+    if suma_proximal > 100:
+        st.error(
+            f"⚠️ La suma de PB + EE + Cenizas + Humedad + FC es {suma_proximal:.1f}%. "
+            "Debe ser ≤ 100% para calcular correctamente el ENA."
+        )
+        st.stop()
+
+    if suma_proximal < 40:
+        st.warning(
+            f"⚠️ La suma proximal actual es baja ({suma_proximal:.1f}%). "
+            "Verifica que los valores estén expresados en porcentaje sobre alimento tal como se ofrece."
+        )
     # Recalculate derived values from edited data
     ENA = calculate_ena(edited_food_data)
     energy = calculate_energy(edited_food_data)
