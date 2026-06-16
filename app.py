@@ -1058,7 +1058,11 @@ with tabs[2]:
 
     # ── Leer datos del alimento evaluado en Pestaña 2 ─────────────────────────
     _food_name3 = st.session_state.get("analysis_food_selector", None)
-    _food_data3 = FOODS.get(_food_name3, {}) if _food_name3 else {}
+    _food_data3 = (
+        st.session_state.get("analysis_food_data_edited", {})
+        if _food_name3 == st.session_state.get("analysis_food_name_edited")
+        else FOODS.get(_food_name3, {})
+    ) if _food_name3 else {}
     _food_energy3 = calc_energy_food(_food_data3) if _food_data3 else {}
     _food_ena3 = calc_ena_food(_food_data3) if _food_data3 else 0.0
     _gramos3 = safe_float(
