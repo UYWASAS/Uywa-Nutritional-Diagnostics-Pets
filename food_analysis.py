@@ -911,7 +911,7 @@ def show_food_analysis():
                 help="Diferencia entre la cantidad recomendada y la actual.",
             )
 
-        # Diagnóstico proteína y grasa
+                # Diagnóstico proteína y grasa
         cob_pb = (gramos_pb / req_pb_g * 100.0) if req_pb_g and req_pb_g > 0 else None
         cob_ee = (gramos_ee / req_ee_g * 100.0) if req_ee_g and req_ee_g > 0 else None
 
@@ -922,6 +922,9 @@ def show_food_analysis():
         st.session_state["gramos_recomendados_actual"] = gramos_recomendados
 
         if cob_pb is not None or cob_ee is not None:
+            col_p, col_e_diag = st.columns(2)
+
+            if cob_pb is not None:
                 pb_estado = (
                     "✓ Adecuada" if 90 <= cob_pb <= 110
                     else ("⚠ Insuficiente" if cob_pb < 90 else "⚠ Excedida")
@@ -933,6 +936,7 @@ def show_food_analysis():
                         pb_estado,
                         help=f"Proteína aportada: {gramos_pb:.1f} g vs requerimiento: {req_pb_g:.1f} g",
                     )
+
             if cob_ee is not None:
                 ee_estado = (
                     "✓ Adecuada" if 90 <= cob_ee <= 110
@@ -948,7 +952,7 @@ def show_food_analysis():
         else:
             cob_pb = None
             cob_ee = None
-
+            
         # Párrafo interpretativo
         interpretacion = generar_interpretacion_alimento(
             food_name, cobertura_energetica_pct, me_total_kcal, mer_animal,
