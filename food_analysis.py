@@ -558,7 +558,7 @@ def show_food_analysis():
             border-collapse: collapse;
             width: 100%;
             margin-top: 20px;
-            font-size: 15px;
+            font-size: 16.5px;
             text-align: center;
             border-radius: 8px;
             overflow: hidden;
@@ -609,8 +609,8 @@ def show_food_analysis():
         .decision-icon { font-size: 32px; margin-bottom: 8px; }
         .decision-status { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
         .decision-percentage { font-size: 28px; font-weight: 700; margin: 8px 0; }
-        .decision-details { font-size: 13px; opacity: 0.85; margin: 8px 0; }
-        .decision-diff { font-size: 14px; font-weight: 600; margin-top: 8px; }
+        .decision-details { font-size: 15px; opacity: 0.85; margin: 8px 0; }
+        .decision-diff { font-size: 15.5px; font-weight: 600; margin-top: 8px; }
         </style>
         """,
         unsafe_allow_html=True,
