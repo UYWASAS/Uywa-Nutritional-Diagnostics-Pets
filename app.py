@@ -1343,8 +1343,11 @@ with tabs[0]:
         df_nutrientes_ajustados = pd.DataFrame(requerimientos_ajustados)
         st.session_state["tabla_requerimientos_base"] = df_nutrientes_ajustados.copy()
 
-        with st.expander("📋 Ver requerimientos nutricionales detallados del paciente", expanded=False):
+        with st.expander("📋 Ver requerimientos nutricionales ajustados", expanded=False):
             st.markdown("<br>", unsafe_allow_html=True)
+            st.caption(
+                "Los requerimientos se ajustan según especie, etapa de vida y MER final estimado."
+            )
             html_nutrientes = "<table class='nutrients-table'><thead><tr><th>Nutriente</th><th>Min Ajustado</th><th>Max Ajustado</th><th>Unidad</th></tr></thead><tbody>"
             for req in requerimientos_ajustados:
                 html_nutrientes += f"<tr><td>{req['Nutriente']}</td><td>{req['Min Ajustado']}</td><td>{req['Max Ajustado']}</td><td>{req['Unidad']}</td></tr>"
