@@ -460,6 +460,7 @@ def clean_state(keys_prefix, valid_names):
 st.title("Gestión y Análisis de Dietas")
 
 tabs = st.tabs([
+    "Dashboard",
     "Perfil de Mascota",
     "Análisis",
     "Resumen y Exportar",
