@@ -962,9 +962,9 @@ with tabs[0]:
     st.markdown(
         """
         <div style="margin-top:18px;margin-bottom:10px;">
-            <h3 style="color:#1f2d3d;margin-bottom:4px;">🔋 Requerimientos energéticos</h3>
+            <h3 style="color:#1f2d3d;margin-bottom:4px;">🩺 Estado corporal y diagnóstico inicial</h3>
             <p style="color:#5a6e8c;margin-top:0;">
-                Estimación de RER, MER fisiológico y MER final ajustado.
+                Interpretación automática basada en BCS, edad, etapa de vida y condición fisiológica.
             </p>
         </div>
         """,
