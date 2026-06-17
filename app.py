@@ -1292,12 +1292,12 @@ with tabs[0]:
             {"Tipo": "MER Ajustada Final", "Valor": f"{fmt2(mer_final)} kcal/día", "Descripción": "Energía total diaria necesaria tras ajustes por BCS y condición."},
         ]
 
-        st.markdown("<br>", unsafe_allow_html=True)
-        html_table = "<table class='energy-table'><thead><tr><th>Tipo de Energía</th><th>Valor</th><th>Descripción</th></tr></thead><tbody>"
-        for entry in energia_data:
-            html_table += f"<tr><td>{entry['Tipo']}</td><td>{entry['Valor']}</td><td>{entry['Descripción']}</td></tr>"
-        html_table += "</tbody></table>"
-        st.markdown(html_table, unsafe_allow_html=True)
+        with st.expander("📋 Ver detalle del cálculo energético", expanded=False):
+            html_table = "<table class='energy-table'><thead><tr><th>Tipo de Energía</th><th>Valor</th><th>Descripción</th></tr></thead><tbody>"
+            for entry in energia_data:
+                html_table += f"<tr><td>{entry['Tipo']}</td><td>{entry['Valor']}</td><td>{entry['Descripción']}</td></tr>"
+            html_table += "</tbody></table>"
+            st.markdown(html_table, unsafe_allow_html=True)
 
         # Tabla de nutrientes ajustados
         nutrientes_ref = NUTRIENTES_REFERENCIA_PERRO if especie == "perro" else NUTRIENTES_REFERENCIA_GATO
