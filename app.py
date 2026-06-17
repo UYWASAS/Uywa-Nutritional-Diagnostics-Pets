@@ -775,19 +775,7 @@ with tabs[0]:
     peso = max(0.1, safe_float(st.session_state.get("peso_mascota", mascota.get("peso", 12.0)), 12.0))
     edad = safe_float(st.session_state.get("edad_mascota", mascota.get("edad", 1.0)), 1.0)
     bcs_disabled = etapa == "cachorro" and condicion == "Destete a 4 meses"
-
-    # Sincronizar estado clínico base para otros módulos
-    st.session_state["nombre_mascota"] = st.session_state.get(
-        "nombre_mascota",
-        mascota.get("nombre", "Mascota"),
-    )
-    st.session_state["especie_mascota"] = especie
-    st.session_state["etapa_mascota"] = etapa
-    st.session_state["condicion_mascota"] = condicion
-    st.session_state["bcs_mascota"] = bcs
-    st.session_state["peso_mascota"] = peso
-    st.session_state["edad_mascota"] = edad
-    
+   
     # Leer ajuste senior: desde session_state (widget) o desde perfil guardado
     if etapa == "adulto" and especie in ("perro", "gato"):
         _stored_senior = mascota.get("aplicar_ajuste_senior")
