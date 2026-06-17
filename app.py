@@ -352,6 +352,11 @@ with st.sidebar:
 
         if expires:
             st.caption(f"Válido hasta: {expires}")
+
+        if st.button("Cerrar sesión", use_container_width=True):
+            for key in list(st.session_state.keys()):
+                del st.session_state[key]
+            st.rerun()
     else:
         st.warning("Por favor, inicia sesión.")
 
