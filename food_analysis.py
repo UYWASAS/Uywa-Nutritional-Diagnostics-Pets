@@ -1077,3 +1077,153 @@ def show_food_analysis():
             ),
             use_container_width=True,
         )
+    # ── Perfil técnico del alimento seleccionado ─────────────────────────────
+    st.markdown("---")
+    st.subheader("🔬 Perfil técnico del alimento seleccionado")
+
+    bd_single = calculate_energy_breakdown(edited_food_data)
+
+    tec_col1, tec_col2 = st.columns([1.2, 1])
+
+    with tec_col1:
+        st.markdown("#### ⚡ Origen de la energía metabolizable")
+
+        fig_single_energy = go.Figure()
+        fig_single_energy.add_trace(
+            go.Bar(
+                x=["Proteína", "Grasa", "Carbohidratos"],
+                y=[
+                    bd_single["me_pb"],
+                    bd_single["me_ee"],
+                    bd_single["me_cho"],
+                ],
+                text=[
+                    f"{bd_single['pct_pb']:.1f}%",
+                    f"{bd_single['pct_ee']:.1f}%",
+                    f"{bd_single['pct_cho']:.1f}%",
+                ],
+                textposition="outside",
+                hovertemplate="<b>%{x}</b><br>%{y:.1f} kcal/100g<extra></extra>",
+            )
+        )
+
+        fig_single_energy.update_layout(
+            title="Distribución energética estimada",
+            xaxis_title="Fuente energética",
+            yaxis_title="kcal/100g",
+            height=380,
+            plot_bgcolor="rgba(0,0,0,0)",
+            paper_bgcolor="rgba(0,0,0,0)",
+            margin=dict(t=60, b=50, l=50, r=20),
+        )
+
+        st.plotly_chart(fig_single_energy, use_container_width=True)
+
+    with tec_col2:
+        st.markdown("#### 🧾 Lectura rápida")
+
+        pb_pct = float(edited_food_data.get("PB", 0))
+        ee_pct = float(edited_food_data.get("EE", 0))
+        fc_pct = float(edited_food_data.get("FC", 0))
+        ena_pct = float(ENA)
+        me_pct = float(energy.get("ME", 0))
+
+        perfil_tags = []
+
+        if pb_pct >= 28:
+            perfil_tags.append("Alta proteína")
+        elif pb_pct >= 20:
+            perfil_tags.append("Proteína moderada")
+        else:
+            perfil_tags.append("Proteína baja")
+
+        if ee_pct >= 18:
+            perfil_tags.append("Alta grasa")
+        elif ee_pct <= 10:
+            perfil_tags.append("Grasa controlada")
+
+        if ena_pct >= 45:
+            perfil_tags.append("ENA elevado")
+        elif ena_pct <= 30:
+            perfil_tags.append("ENA moderado/bajo")
+
+        if me_pct >= 380:
+            perfil_tags.append("Alta densidad energética")
+        elif me_pct <= 310:
+            perfil_tags.append("Densidad energética baja")
+
+        for tag in perfil_tags:
+            st.markdown(f"✓ **{tag}**")
+
+        st.markdown("---")
+        st.markdown(f"**ME estimada:** {me_pct:.1f} kcal/100g")
+        st.markdown(f"**PB:** {pb_pct:.1f}%")
+        st.markdown(f"**EE:** {ee_pct:.1f}%")
+        st.markdown(f"**FC:** {fc_pct:.1f}%")
+        st.markdown(f"**ENA:** {ena_pct:.1f}%")
+
+    st.markdown("#### 🌱 Ingredientes y fuentes nutricionales")
+
+    ing_col1, ing_col2 = st.columns(2)
+
+    with ing_col1:
+        ingredientes = edited_food_data.get("ingredients", "")
+        if ingredientes:
+            st.markdown("**Ingredientes declarados:**")
+            st.info(ingredientes)
+        else:
+            st.info("No hay ingredientes declarados para este alimento.")
+
+    with ing_col2:
+        source_pb = edited_food_data.get("source_pb", "")
+        source_ee = edited_food_data.get("source_ee", "")
+        source_fc = edited_food_data.get("source_fc", "")
+
+        st.markdown("**Fuentes principales:**")
+
+        if source_pb:
+            st.markdown(f"🥩 **Proteína:** {source_pb}")
+        else:
+            st.markdown("🥩 **Proteína:** No especificada")
+
+        if source_ee:
+            st.markdown(f"🧈 **Grasa:** {source_ee}")
+        else:
+            st.markdown("🧈 **Grasa:** No especificada")
+
+        if source_fc:
+            st.markdown(f"🌾 **Fibra/carbohidratos:** {source_fc}")
+        else:
+            st.markdown("🌾 **Fibra/carbohidratos:** No especificada")
+
+    st.markdown("#### 🧠 Interpretación técnica")
+
+    interpretacion_tecnica = []
+
+    if ena_pct >= 45:
+        interpretacion_tecnica.append(
+            "El alimento presenta una proporción elevada de ENA, por lo que una parte importante de la energía proviene de carbohidratos."
+        )
+
+    if ee_pct >= 18:
+        interpretacion_tecnica.append(
+            "El nivel de grasa es alto y contribuye de forma importante a la densidad energética."
+        )
+
+    if pb_pct >= 28:
+        interpretacion_tecnica.append(
+            "El alimento presenta un aporte proteico alto, útil para evaluar soporte de masa magra según el paciente."
+        )
+
+    if fc_pct >= 5:
+        interpretacion_tecnica.append(
+            "El contenido de fibra puede influir sobre digestibilidad energética y saciedad."
+        )
+
+    if not interpretacion_tecnica:
+        interpretacion_tecnica.append(
+            "El alimento presenta un perfil composicional intermedio, sin alertas técnicas marcadas según los umbrales actuales."
+        )
+
+    for item in interpretacion_tecnica:
+        st.markdown(f"• {item}")
