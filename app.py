@@ -467,7 +467,18 @@ tabs = st.tabs([
 ])
 # ======================== BLOQUE 5.1: TAB PERFIL EDITABLE + CÁLCULOS COMPLETO ========================
 with tabs[0]:
-    st.subheader("Perfil y Requerimientos Energéticos de la Mascota")
+    st.header("🐾 Perfil Clínico-Nutricional")
+    st.markdown(
+        """
+        <div style="background:#ffffff;border-left:5px solid #2176FF;
+                    border-radius:10px;padding:14px 18px;margin-bottom:18px;
+                    box-shadow:0 2px 8px rgba(0,0,0,0.06);">
+            <b>Objetivo:</b> registrar los datos del paciente, estimar sus requerimientos energéticos
+            y generar una interpretación nutricional inicial.
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
     # --- CSS personalizado para el perfil de mascota ---
     st.markdown(
@@ -948,7 +959,17 @@ with tabs[0]:
 
     # ===================== DIAGNÓSTICO NUTRICIONAL INICIAL (ANCHO COMPLETO) =====================
     st.markdown("<hr class='section-divider'>", unsafe_allow_html=True)
-    st.markdown("### 🩺 Diagnóstico Nutricional Inicial")
+    st.markdown(
+        """
+        <div style="margin-top:18px;margin-bottom:10px;">
+            <h3 style="color:#1f2d3d;margin-bottom:4px;">🔋 Requerimientos energéticos</h3>
+            <p style="color:#5a6e8c;margin-top:0;">
+                Estimación de RER, MER fisiológico y MER final ajustado.
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
     _estado_corporal = get_estado_corporal(bcs)
     _riesgo = calcular_riesgo_nutricional(bcs, edad, condicion, etapa, aplicar_ajuste_senior)
