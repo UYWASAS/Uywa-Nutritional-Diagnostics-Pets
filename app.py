@@ -1102,7 +1102,62 @@ with tabs[0]:
                 """,
                 unsafe_allow_html=True,
             )
+    # ===================== DASHBOARD EJECUTIVO DEL PERFIL =====================
+    _estado_preview = get_estado_corporal(bcs)
+    _riesgo_preview = calcular_riesgo_nutricional(
+        bcs, edad, condicion, etapa, aplicar_ajuste_senior
+    )
 
+    dash1, dash2, dash3 = st.columns(3)
+
+    with dash1:
+        st.markdown(
+            f"""
+            <div style="background:#ffffff;border-radius:14px;padding:18px;
+                        border-left:5px solid #2176FF;
+                        box-shadow:0 2px 10px rgba(0,0,0,0.07);">
+                <div style="font-size:0.85rem;color:#5a6e8c;font-weight:700;">PACIENTE</div>
+                <div style="font-size:1.45rem;font-weight:800;color:#1f2d3d;">{nombre_display}</div>
+                <div style="color:#5a6e8c;">{especie.capitalize()} · {etapa.capitalize()}</div>
+                <div style="margin-top:6px;">{fmt2(peso)} kg · {fmt2(edad)} años</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    with dash2:
+        _risk_color = RIESGO_COLORES.get(_riesgo_preview, "#52B788")
+        _risk_icon = RIESGO_ICONS.get(_riesgo_preview, "🟢")
+
+        st.markdown(
+            f"""
+            <div style="background:#ffffff;border-radius:14px;padding:18px;
+                        border-left:5px solid {_risk_color};
+                        box-shadow:0 2px 10px rgba(0,0,0,0.07);">
+                <div style="font-size:0.85rem;color:#5a6e8c;font-weight:700;">ESTADO CORPORAL</div>
+                <div style="font-size:1.45rem;font-weight:800;color:#1f2d3d;">BCS {bcs}/9</div>
+                <div style="color:#5a6e8c;">{_estado_preview}</div>
+                <div style="margin-top:6px;">{_risk_icon} Riesgo {_riesgo_preview}</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    with dash3:
+        st.markdown(
+            f"""
+            <div style="background:#ffffff;border-radius:14px;padding:18px;
+                        border-left:5px solid #F4845F;
+                        box-shadow:0 2px 10px rgba(0,0,0,0.07);">
+                <div style="font-size:0.85rem;color:#5a6e8c;font-weight:700;">ENERGÍA FINAL</div>
+                <div style="font-size:1.45rem;font-weight:800;color:#1f2d3d;">{fmt2(mer_final)} kcal/día</div>
+                <div style="color:#5a6e8c;">MER ajustado</div>
+                <div style="margin-top:6px;">Senior: {"Sí" if senior_aplicado else "No"}</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        
     # ===================== DIAGNÓSTICO NUTRICIONAL INICIAL (ANCHO COMPLETO) =====================
     st.markdown("<hr class='section-divider'>", unsafe_allow_html=True)
     st.markdown(
