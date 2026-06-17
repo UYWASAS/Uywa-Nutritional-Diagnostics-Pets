@@ -466,7 +466,7 @@ tabs = st.tabs([
     "Seguimiento del Paciente",
 ])
 # ======================== BLOQUE 5.1: TAB PERFIL EDITABLE + CÁLCULOS COMPLETO ========================
-with tabs[0]:
+with tabs[1]:
     st.header("🐾 Perfil Clínico-Nutricional")
     st.markdown(
         """
@@ -1359,11 +1359,11 @@ with tabs[0]:
         st.stop()
 
 # ======================== BLOQUE 6: ANÁLISIS NUTRICIONAL ========================
-with tabs[1]:
+with tabs[2]:
     show_food_analysis()
 
 # ======================== BLOQUE 9: RESUMEN Y EXPORTAR ========================
-with tabs[2]:
+with tabs[4]:
     st.header("📋 Resumen y Exportación")
 
     ready, ready_message = clinical_state_is_ready(require_food=False)
@@ -1717,5 +1717,5 @@ with tabs[2]:
             st.error(f"Error al generar informe HTML: {_e}")
 
 # ======================== BLOQUE 5.4: TAB SEGUIMIENTO DEL PACIENTE ========================
-with tabs[3]:
+with tabs[4]:
     show_patient_followup()
