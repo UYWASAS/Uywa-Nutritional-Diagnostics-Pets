@@ -460,87 +460,14 @@ def clean_state(keys_prefix, valid_names):
 st.title("Gestión y Análisis de Dietas")
 
 tabs = st.tabs([
-    "Dashboard",
     "Perfil de Mascota",
     "Análisis",
     "Resumen y Exportar",
     "Seguimiento del Paciente",
 ])
 
-# ======================== BLOQUE 5.0: DASHBOARD GENERAL ========================
-with tabs[0]:
-    st.header("📊 Dashboard Clínico-Nutricional")
-
-    state = get_current_clinical_state()
-    pet = state["pet"]
-    energy = state["energy"]
-    food = state["food"]
-
-    nombre_dash = pet.get("nombre", "Mascota") or "Mascota"
-    especie_dash = pet.get("especie", "perro")
-    peso_dash = pet.get("peso", 0)
-    edad_dash = pet.get("edad", 0)
-    bcs_dash = pet.get("bcs", 5)
-
-    mer_dash = energy.get("mer_final", 0)
-    rer_dash = energy.get("rer", 0)
-    estado_dash = energy.get("estado_corporal", get_estado_corporal(bcs_dash))
-    riesgo_dash = energy.get("riesgo_nutricional", "—")
-
-    alimento_dash = food.get("alimento", "—")
-    cobertura_dash = food.get("cobertura_energia", 0)
-    energia_aportada_dash = food.get("energia_aportada", 0)
-
-    d1, d2, d3, d4 = st.columns(4)
-
-    with d1:
-        st.metric("Paciente", nombre_dash)
-        st.caption(f"{especie_dash.capitalize()} · {peso_dash:.1f} kg · {edad_dash:.1f} años")
-
-    with d2:
-        st.metric("BCS", f"{bcs_dash}/9")
-        st.caption(f"{estado_dash} · Riesgo {riesgo_dash}")
-
-    with d3:
-        st.metric("MER final", f"{mer_dash:.1f} kcal/día")
-        st.caption(f"RER: {rer_dash:.1f} kcal/día")
-
-    with d4:
-        if cobertura_dash:
-            st.metric("Cobertura energética", f"{cobertura_dash:.1f}%")
-            st.caption(f"Aporte: {energia_aportada_dash:.1f} kcal/día")
-        else:
-            st.metric("Cobertura energética", "—")
-            st.caption("Completa el análisis de alimento")
-
-    st.markdown("---")
-
-    c1, c2 = st.columns(2)
-
-    with c1:
-        st.subheader("Estado del perfil")
-        ready_profile, msg_profile = clinical_state_is_ready(require_food=False)
-        if ready_profile:
-            st.success("Perfil energético completo.")
-        else:
-            st.warning(msg_profile)
-
-        st.markdown(f"**Estado corporal:** {estado_dash}")
-        st.markdown(f"**Riesgo nutricional:** {riesgo_dash}")
-        st.markdown(f"**MER final:** {mer_dash:.1f} kcal/día")
-
-    with c2:
-        st.subheader("Estado del alimento")
-        if alimento_dash not in [None, "", "—"] and energia_aportada_dash > 0:
-            st.success("Alimento analizado.")
-            st.markdown(f"**Alimento:** {alimento_dash}")
-            st.markdown(f"**Energía aportada:** {energia_aportada_dash:.1f} kcal/día")
-            st.markdown(f"**Cobertura energética:** {cobertura_dash:.1f}%")
-        else:
-            st.info("Selecciona y analiza un alimento para completar el dashboard.")
-
 # ======================== BLOQUE 5.1: TAB PERFIL EDITABLE + CÁLCULOS COMPLETO ========================
-with tabs[1]:
+with tabs[0]:
     st.header("🐾 Perfil Clínico-Nutricional")
     st.markdown(
         """
@@ -1433,11 +1360,11 @@ with tabs[1]:
         st.stop()
 
 # ======================== BLOQUE 6: ANÁLISIS NUTRICIONAL ========================
-with tabs[2]:
+with tabs[1]:
     show_food_analysis()
 
 # ======================== BLOQUE 9: RESUMEN Y EXPORTAR ========================
-with tabs[3]:
+with tabs[2]:
     st.header("📋 Resumen y Exportación")
 
     ready, ready_message = clinical_state_is_ready(require_food=False)
@@ -1791,5 +1718,5 @@ with tabs[3]:
             st.error(f"Error al generar informe HTML: {_e}")
 
 # ======================== BLOQUE 5.4: TAB SEGUIMIENTO DEL PACIENTE ========================
-with tabs[4]:
+with tabs[3]:
     show_patient_followup()
