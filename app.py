@@ -851,7 +851,10 @@ with tabs[0]:
     with col_left:
         # Icono de especie
         especie_icon = "🐕" if especie == "perro" else "🐈"
-        nombre_display = mascota.get("nombre", "Mascota")
+        nombre_display = st.session_state.get(
+            "nombre_mascota",
+            mascota.get("nombre", "Mascota")
+        ) or "Mascota"
 
         # Foto circular o placeholder
         foto_bytes = st.session_state.get("mascota_foto_bytes")
