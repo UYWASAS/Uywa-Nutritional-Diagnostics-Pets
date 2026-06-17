@@ -1367,7 +1367,120 @@ with tabs[1]:
 # ======================== BLOQUE 7: COMPARADOR ========================
 with tabs[2]:
     st.header("⚖️ Comparador Nutricional de Alimentos")
-    st.info("En el siguiente paso integraremos aquí el comparador avanzado de alimentos.")
+
+    st.markdown(
+        """
+        Compara varios alimentos por composición proximal, energía metabolizable
+        y cobertura estimada según el paciente activo.
+        """
+    )
+
+    state_comp = get_current_clinical_state()
+    pet_comp = state_comp["pet"]
+    energy_comp = state_comp["energy"]
+
+    especie_comp = pet_comp.get("especie", "perro")
+    mer_comp = energy_comp.get("mer_final", 0)
+
+    alimentos_especie = []
+    for nombre, datos in FOODS.items():
+        food_species = str(datos.get("species", "")).lower()
+        food_category = str(datos.get("category", "")).lower()
+
+        if especie_comp == "perro":
+            if any(t in food_species or t in food_category for t in ["perro", "canino", "canine"]):
+                alimentos_especie.append(nombre)
+        elif especie_comp == "gato":
+            if any(t in food_species or t in food_category for t in ["gato", "felino", "feline"]):
+                alimentos_especie.append(nombre)
+
+    if not alimentos_especie:
+        alimentos_especie = sorted(list(FOODS.keys()))
+    else:
+        alimentos_especie = sorted(alimentos_especie)
+
+    st.caption(f"Especie activa: {especie_comp.capitalize()}")
+
+    alimentos_comparar = st.multiselect(
+        "Selecciona alimentos para comparar",
+        alimentos_especie,
+        default=alimentos_especie[:3],
+        max_selections=6,
+        key="comparador_alimentos",
+    )
+
+    gramos_comp = st.number_input(
+        "Gramos diarios para estimar cobertura",
+        min_value=1.0,
+        max_value=5000.0,
+        value=100.0,
+        step=10.0,
+        key="comparador_gramos",
+    )
+
+    if not alimentos_comparar:
+        st.info("Selecciona al menos un alimento.")
+    else:
+        filas_comp = []
+
+        for alimento in alimentos_comparar:
+            datos = FOODS.get(alimento, {})
+            energia = calc_energy_food(datos)
+            ena = calc_ena_food(datos)
+
+            me = energia.get("ME", 0)
+            aporte = (me / 100.0) * gramos_comp
+            cobertura = (aporte / mer_comp * 100.0) if mer_comp and mer_comp > 0 else None
+
+            filas_comp.append({
+                "Alimento": alimento,
+                "PB (%)": round(datos.get("PB", 0), 2),
+                "EE (%)": round(datos.get("EE", 0), 2),
+                "FC (%)": round(datos.get("FC", 0), 2),
+                "ENA (%)": round(ena, 2),
+                "ME (kcal/100g)": round(me, 2),
+                "Aporte kcal/día": round(aporte, 1),
+                "Cobertura energética (%)": round(cobertura, 1) if cobertura is not None else "Sin MER",
+            })
+
+        df_comp = pd.DataFrame(filas_comp)
+
+        st.subheader("📋 Tabla comparativa")
+        st.dataframe(df_comp, use_container_width=True, hide_index=True)
+
+        st.subheader("🏆 Ranking rápido")
+
+        mejor_me = df_comp.sort_values("ME (kcal/100g)", ascending=False).iloc[0]
+        mejor_pb = df_comp.sort_values("PB (%)", ascending=False).iloc[0]
+        menor_ena = df_comp.sort_values("ENA (%)", ascending=True).iloc[0]
+
+        c1, c2, c3 = st.columns(3)
+
+        with c1:
+            st.metric(
+                "Mayor energía",
+                mejor_me["Alimento"],
+                f"{mejor_me['ME (kcal/100g)']} kcal/100g",
+            )
+
+        with c2:
+            st.metric(
+                "Mayor proteína",
+                mejor_pb["Alimento"],
+                f"{mejor_pb['PB (%)']}% PB",
+            )
+
+        with c3:
+            st.metric(
+                "Menor ENA",
+                menor_ena["Alimento"],
+                f"{menor_ena['ENA (%)']}% ENA",
+            )
+
+        if mer_comp and mer_comp > 0:
+            st.success(f"Comparación ajustada al MER actual: {mer_comp:.1f} kcal/día.")
+        else:
+            st.warning("No hay MER calculado. La cobertura energética se mostrará cuando completes el Perfil.")
 
 # ======================== BLOQUE 9: RESUMEN Y EXPORTAR ========================
 with tabs[3]:
