@@ -1162,68 +1162,37 @@ def show_food_analysis():
         st.markdown(f"**FC:** {fc_pct:.1f}%")
         st.markdown(f"**ENA:** {ena_pct:.1f}%")
 
-    st.markdown("#### 🌱 Ingredientes y fuentes nutricionales")
+    st.markdown("#### 🌱 Principales materias primas identificadas")
 
-    ing_col1, ing_col2 = st.columns(2)
-
-    with ing_col1:
-        ingredientes = edited_food_data.get("ingredients", "")
-        if ingredientes:
-            st.markdown("**Ingredientes declarados:**")
-            st.info(ingredientes)
-        else:
-            st.info("No hay ingredientes declarados para este alimento.")
-
-    with ing_col2:
-        source_pb = edited_food_data.get("source_pb", "")
-        source_ee = edited_food_data.get("source_ee", "")
-        source_fc = edited_food_data.get("source_fc", "")
-
-        st.markdown("**Fuentes principales:**")
-
+    source_pb = edited_food_data.get("source_pb", "")
+    source_ee = edited_food_data.get("source_ee", "")
+    source_fc = edited_food_data.get("source_fc", "")
+    
+    col_pb, col_ee, col_fc = st.columns(3)
+    
+    with col_pb:
+        st.markdown("##### 🥩 Proteína")
+    
         if source_pb:
-            st.markdown(f"🥩 **Proteína:** {source_pb}")
+            for item in source_pb.split(";"):
+                st.markdown(f"• {item.strip()}")
         else:
-            st.markdown("🥩 **Proteína:** No especificada")
-
+            st.caption("No especificado")
+    
+    with col_ee:
+        st.markdown("##### 🧈 Grasa")
+    
         if source_ee:
-            st.markdown(f"🧈 **Grasa:** {source_ee}")
+            for item in source_ee.split(";"):
+                st.markdown(f"• {item.strip()}")
         else:
-            st.markdown("🧈 **Grasa:** No especificada")
-
+            st.caption("No especificado")
+    
+    with col_fc:
+        st.markdown("##### 🌾 Carbohidratos y fibra")
+    
         if source_fc:
-            st.markdown(f"🌾 **Fibra/carbohidratos:** {source_fc}")
+            for item in source_fc.split(";"):
+                st.markdown(f"• {item.strip()}")
         else:
-            st.markdown("🌾 **Fibra/carbohidratos:** No especificada")
-
-    st.markdown("#### 🧠 Interpretación técnica")
-
-    interpretacion_tecnica = []
-
-    if ena_pct >= 45:
-        interpretacion_tecnica.append(
-            "El alimento presenta una proporción elevada de ENA, por lo que una parte importante de la energía proviene de carbohidratos."
-        )
-
-    if ee_pct >= 18:
-        interpretacion_tecnica.append(
-            "El nivel de grasa es alto y contribuye de forma importante a la densidad energética."
-        )
-
-    if pb_pct >= 28:
-        interpretacion_tecnica.append(
-            "El alimento presenta un aporte proteico alto, útil para evaluar soporte de masa magra según el paciente."
-        )
-
-    if fc_pct >= 5:
-        interpretacion_tecnica.append(
-            "El contenido de fibra puede influir sobre digestibilidad energética y saciedad."
-        )
-
-    if not interpretacion_tecnica:
-        interpretacion_tecnica.append(
-            "El alimento presenta un perfil composicional intermedio, sin alertas técnicas marcadas según los umbrales actuales."
-        )
-
-    for item in interpretacion_tecnica:
-        st.markdown(f"• {item}")
+            st.caption("No especificado")
