@@ -481,7 +481,7 @@ def _render_evolution_charts(df_current):
     )
     fig_peso.update_layout(
         title="Peso vs tiempo",
-        height=320,
+        height=380,
         xaxis_title="Fecha",
         yaxis_title="Peso (kg)",
     )
@@ -587,7 +587,7 @@ def _render_visit_table(df_current):
 
 
 def show_patient_followup():
-    st.header("Seguimiento del paciente")
+    st.header("📈 Seguimiento Clínico-Nutricional del Paciente")
 
     uploaded_file = st.file_uploader(
         "Cargar ficha maestra (.xlsx)",
