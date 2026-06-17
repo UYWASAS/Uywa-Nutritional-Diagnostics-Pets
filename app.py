@@ -462,6 +462,7 @@ st.title("Gestión y Análisis de Dietas")
 tabs = st.tabs([
     "Perfil de Mascota",
     "Análisis",
+    "Comparador",
     "Resumen y Exportar",
     "Seguimiento del Paciente",
 ])
@@ -1363,8 +1364,13 @@ with tabs[0]:
 with tabs[1]:
     show_food_analysis()
 
-# ======================== BLOQUE 9: RESUMEN Y EXPORTAR ========================
+# ======================== BLOQUE 7: COMPARADOR ========================
 with tabs[2]:
+    st.header("⚖️ Comparador Nutricional de Alimentos")
+    st.info("En el siguiente paso integraremos aquí el comparador avanzado de alimentos.")
+
+# ======================== BLOQUE 9: RESUMEN Y EXPORTAR ========================
+with tabs[3]:
     st.header("📋 Resumen y Exportación")
 
     ready, ready_message = clinical_state_is_ready(require_food=False)
@@ -1718,5 +1724,5 @@ with tabs[2]:
             st.error(f"Error al generar informe HTML: {_e}")
 
 # ======================== BLOQUE 5.4: TAB SEGUIMIENTO DEL PACIENTE ========================
-with tabs[3]:
+with tabs[4]:
     show_patient_followup()
