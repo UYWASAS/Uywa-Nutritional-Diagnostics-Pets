@@ -1363,7 +1363,7 @@ with tabs[2]:
     show_food_analysis()
 
 # ======================== BLOQUE 9: RESUMEN Y EXPORTAR ========================
-with tabs[4]:
+with tabs[3]:
     st.header("📋 Resumen y Exportación")
 
     ready, ready_message = clinical_state_is_ready(require_food=False)
