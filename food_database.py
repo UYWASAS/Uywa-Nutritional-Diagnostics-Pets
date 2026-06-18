@@ -720,19 +720,21 @@ def calculate_ena(food_data):
     return round(ena, 2)
 
 
-def calculate_energy(food_data):
+def calculate_energy(food_data, species="perro"):
     """
-    Calcula la energía metabolizable según el modelo NRC para perros y gatos.
+    Calcula la energía metabolizable según ecuaciones FEDIAF/NRC para perros y gatos.
 
-    Ecuaciones:
-        1. GE  (kcal/100g) = (5.7 × PB) + (9.4 × EE) + [4.1 × (ENA + FC)]
-        2. FC_MS (% en materia seca) = FC / MS × 100
-        3. %DE  = 91.2 - (1.43 x FC_MS)
-        4. DE   (kcal/100g) = GE x (%DE / 100)
-        5. ME   (kcal/100g) = DE - (1.04 x PB)
+    Ecuaciones para alimentos preparados:
+        1. GE = (5.7 × PB) + (9.4 × EE) + [4.1 × (ENA + FC)]
+        2. FC_MS = FC / MS × 100
 
-    Retorna:
-        dict con GE, ENA, MS, FC_MS, DE_pct, DE y ME.
+    Perros:
+        %DE = 91.2 - (1.43 × FC_MS)
+        ME = DE - (1.04 × PB)
+
+    Gatos:
+        %DE = 87.9 - (0.88 × FC_MS)
+        ME = DE - (0.77 × PB)
     """
     is_valid, message, _ = validate_proximal_composition(food_data)
 
@@ -741,28 +743,30 @@ def calculate_energy(food_data):
 
     PB = float(food_data["PB"])
     EE = float(food_data["EE"])
-    Ash = float(food_data["Ash"])
     Humidity = float(food_data["Humidity"])
     FC = float(food_data["FC"])
 
     ENA = calculate_ena(food_data)
 
-    # 1. Energía Bruta
     GE = (5.7 * PB) + (9.4 * EE) + (4.1 * (ENA + FC))
 
-    # 2. Materia Seca y FC en base MS
     MS = max(0.0, 100.0 - Humidity)
     FC_MS = (FC / MS * 100.0) if MS > 0 else 0.0
 
-    # 3. Digestibilidad Energética
-    DE_pct = 91.2 - (1.43 * FC_MS)
+    species_clean = str(species or "").strip().lower()
+
+    if "gato" in species_clean or "cat" in species_clean or "felino" in species_clean:
+        DE_pct = 87.9 - (0.88 * FC_MS)
+        urinary_loss = 0.77 * PB
+        equation_species = "gato"
+    else:
+        DE_pct = 91.2 - (1.43 * FC_MS)
+        urinary_loss = 1.04 * PB
+        equation_species = "perro"
+
     DE_pct = min(100.0, max(0.0, DE_pct))
-
-    # 4. Energía Digestible
     DE = GE * (DE_pct / 100.0)
-
-    # 5. Energía Metabolizable
-    ME = DE - (1.04 * PB)
+    ME = DE - urinary_loss
 
     return {
         "ENA": round(ENA, 2),
@@ -772,31 +776,18 @@ def calculate_energy(food_data):
         "DE_pct": round(DE_pct, 2),
         "DE": round(DE, 2),
         "ME": round(ME, 2),
+        "equation_species": equation_species,
+        "urinary_loss": round(urinary_loss, 2),
     }
 
-
-def calculate_energy_breakdown(food_data):
+def calculate_energy_breakdown(food_data, species="perro"):
     """
-    Calcula el aporte energético de cada macronutriente según la fórmula NRC.
-
-    Desglose basado en GE = (5.7 × PB) + (9.4 × EE) + [4.1 × (ENA + FC)]:
-        - kcal_pb  : energía aportada por la Proteína Bruta
-        - kcal_ee  : energía aportada por la Grasa (EE)
-        - kcal_cho : energía aportada por Carbohidratos + Fibra (ENA + FC)
-
-    Los porcentajes se calculan respecto a la GE total.
-    Los valores de ME proporcionales escalan los % al valor real de ME.
-
-    Parámetros:
-        food_data (dict): Diccionario con las claves PB, EE, Ash, Humidity y FC
-            (valores porcentuales en base tal como está / as-fed).
-
-    Retorna:
-        dict con kcal y porcentajes por nutriente, más GE, DE y ME totales.
+    Calcula el origen energético proporcional del alimento usando la ME
+    calculada con la ecuación correspondiente a perro o gato.
     """
-    PB = food_data["PB"]
-    EE = food_data["EE"]
-    FC = food_data["FC"]
+    PB = float(food_data["PB"])
+    EE = float(food_data["EE"])
+    FC = float(food_data["FC"])
     ENA = calculate_ena(food_data)
 
     kcal_pb = 5.7 * PB
@@ -811,7 +802,7 @@ def calculate_energy_breakdown(food_data):
     else:
         pct_pb = pct_ee = pct_cho = 0.0
 
-    energy = calculate_energy(food_data)
+    energy = calculate_energy(food_data, species=species)
     ME = energy["ME"]
 
     return {
@@ -827,8 +818,9 @@ def calculate_energy_breakdown(food_data):
         "GE": energy["GE"],
         "DE": energy["DE"],
         "ME": ME,
+        "DE_pct": energy["DE_pct"],
+        "equation_species": energy["equation_species"],
     }
-
 
 # ---------------------------------------------------------------------------
 # Inicialización: intentar cargar desde XLSX v2 (21 columnas, recalcula energía);
