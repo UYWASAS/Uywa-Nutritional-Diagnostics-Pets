@@ -755,7 +755,7 @@ def calculate_energy(food_data):
     FC_MS = (FC / MS * 100.0) if MS > 0 else 0.0
 
     # 3. Digestibilidad Energética
-    DE_pct = 91.2 - (1.43 * FC_MS)
+    DE_pct = 95 - (1.43 * FC_MS)
     DE_pct = min(100.0, max(0.0, DE_pct))
 
     # 4. Energía Digestible
