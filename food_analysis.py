@@ -176,7 +176,8 @@ def show_energy_breakdown_cards(selected_foods):
         fdata = get_food_data(fname)
         if not fdata:
             continue
-        bd = calculate_energy_breakdown(fdata)
+        species_food = fdata.get("species", st.session_state.get("especie_mascota", "perro"))
+        bd = calculate_energy_breakdown(fdata, species=species_food)
         col = cols[idx % 3]
 
         source_pb = fdata.get("source_pb", "")
@@ -275,7 +276,8 @@ def build_energy_breakdown_table_with_edits(selected_foods, edited_values_map=No
         else:
             edited_fdata = fdata
 
-        bd = calculate_energy_breakdown(edited_fdata)
+        species_food = edited_fdata.get("species", st.session_state.get("especie_mascota", "perro"))
+        bd = calculate_energy_breakdown(edited_fdata, species=species_food)
         rows.append({
             "Alimento": f"{edited_fdata.get('emoji','')} {fname}",
             "Proteína (kcal/100g)": bd["kcal_pb"],
@@ -317,7 +319,8 @@ def plot_energy_breakdown_stacked_with_edits(selected_foods, edited_values_map=N
         else:
             edited_fdata = fdata
 
-        bd = calculate_energy_breakdown(edited_fdata)
+        species_food = edited_fdata.get("species", st.session_state.get("especie_mascota", "perro"))
+        bd = calculate_energy_breakdown(edited_fdata, species=species_food)
         emoji_names.append(f"{edited_fdata.get('emoji', '')} {fname}")
         me_pb_vals.append(bd["me_pb"])
         me_ee_vals.append(bd["me_ee"])
@@ -776,7 +779,15 @@ def show_food_analysis():
         )
     # Recalculate derived values from edited data
     ENA = calculate_ena(edited_food_data)
-    energy = calculate_energy(edited_food_data)
+    species_energy = edited_food_data.get(
+        "species",
+        st.session_state.get("especie_mascota", "perro"),
+    )
+    
+    energy = calculate_energy(
+        edited_food_data,
+        species=species_energy,
+    )
 
     # ---- Métricas de nutrientes proximales ----
     st.markdown("#### 📊 Composición Proximal")
@@ -999,18 +1010,29 @@ def show_food_analysis():
     # ── Expander: Cálculo energético detallado (NRC) ──────────────────────────
     with st.expander("📋 Ver cálculo energético detallado", expanded=False):
         st.markdown(
-            """
+            f"""
             <div style="background:#fffbe6;border-left:4px solid #FFB703;border-radius:8px;
                         padding:12px 18px;margin-bottom:16px;font-size:0.93rem;">
-                <b>Ecuaciones utilizadas (NRC):</b><br>
+                <b>Ecuaciones utilizadas FEDIAF/NRC — {species_label}:</b><br>
                 1. <code>GE = (5.7×PB) + (9.4×EE) + [4.1×(ENA+FC)]</code><br>
-                2. <code>%DE = 91.2 - (1.43×FC_MS)</code><br>
+                2. <code>{de_formula_text}</code><br>
                 3. <code>DE = GE × (%DE/100)</code><br>
-                4. <code>ME = DE - (1.04×PB)</code>
+                4. <code>{me_formula_text}</code>
             </div>
             """,
             unsafe_allow_html=True,
         )
+
+        equation_species = energy.get("equation_species", "perro")
+
+        if equation_species == "gato":
+            de_formula_text = "%DE = 87.9 - (0.88×FC_MS)"
+            me_formula_text = "ME = DE - (0.77×PB)"
+            species_label = "Gato"
+        else:
+            de_formula_text = "%DE = 91.2 - (1.43×FC_MS)"
+            me_formula_text = "ME = DE - (1.04×PB)"
+            species_label = "Perro"
 
         st.markdown("#### 📋 Cálculo Paso a Paso (NRC)")
         energy_calc_rows = [
@@ -1081,7 +1103,10 @@ def show_food_analysis():
     st.markdown("---")
     st.subheader("🔬 Perfil técnico del alimento seleccionado")
 
-    bd_single = calculate_energy_breakdown(edited_food_data)
+    bd_single = calculate_energy_breakdown(
+        edited_food_data,
+        species=species_energy,
+    )
 
     tec_col1, tec_col2 = st.columns([1.2, 1])
 
