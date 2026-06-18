@@ -199,6 +199,7 @@ FACTORES_CONDICION = {
         "adulto": {
             "Castrado": 1.2,
             "Entero": 1.4,
+            "Indoor": 1.0,
             "Tendencia obesidad": 1.0,
             "Obeso": 0.8,
             "Bajo peso": [1.2, 1.4],
@@ -783,6 +784,10 @@ with tabs[0]:
                 opciones_condicion = [
                     "Castrado",
                     "Entero",
+                    "Indoor",
+                    "Tendencia obesidad",
+                    "Obeso",
+                    "Bajo peso",
                     "Gestación (Inicio)",
                     "Gestación (Final)",
                     "Lactancia",
