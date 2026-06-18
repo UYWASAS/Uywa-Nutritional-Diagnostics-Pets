@@ -52,3 +52,52 @@ def calcular_rer(peso):
         logging.error("[RER] %s", e)
 
         return 0.0
+
+def calcular_mer_gato_fediaf(peso, condicion="Castrado"):
+    """
+    Calcula MER base para gatos adultos según FEDIAF.
+
+    Gato indoor / castrado / tendencia obesidad:
+        MER = 75 × peso^0.67
+
+    Gato activo / entero / bajo peso:
+        MER = 100 × peso^0.67
+
+    Retorna:
+        tuple: (mer_base, factor_equivalente, descripcion)
+    """
+    try:
+        peso = validar_peso(peso)
+        condicion_txt = str(condicion or "").strip().lower()
+
+        condiciones_bajas = [
+            "castrado",
+            "indoor",
+            "tendencia obesidad",
+            "obeso",
+        ]
+
+        if any(c in condicion_txt for c in condiciones_bajas):
+            k = 75.0
+            descripcion = "FEDIAF gato adulto indoor/castrado"
+        else:
+            k = 100.0
+            descripcion = "FEDIAF gato adulto activo/entero"
+
+        mer = k * (peso ** 0.67)
+
+        rer_clinico = calcular_rer(peso)
+        factor_equivalente = mer / rer_clinico if rer_clinico > 0 else 0.0
+
+        logging.info(
+            "[MER FEDIAF GATO] Peso %.2f kg | k %.1f -> %.2f kcal/día",
+            peso,
+            k,
+            mer,
+        )
+
+        return round(mer, 2), round(factor_equivalente, 2), descripcion
+
+    except Exception as e:
+        logging.error("[MER FEDIAF GATO] %s", e)
+        return 0.0, 0.0, "Error en cálculo FEDIAF gato"
