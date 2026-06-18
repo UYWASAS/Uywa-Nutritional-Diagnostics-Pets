@@ -486,7 +486,12 @@ def load_diets_from_xlsx_v2(xlsx_path: str) -> dict:
                     "Humidity": humidity,
                     "FC": fc,
                 }
-                energy_calcs = calculate_energy(food_data_temp)
+                especie_temp = str(row.get("Especie", "")).strip()
+
+                energy_calcs = calculate_energy(
+                    food_data_temp,
+                    species=especie_temp,
+                )
 
                 ena = energy_calcs["ENA"]
                 ge = energy_calcs["GE"]
