@@ -1449,7 +1449,13 @@ with tabs[2]:
 
         for alimento in alimentos_comparar:
             datos = FOODS.get(alimento, {})
-            energia = calc_energy_food(datos)
+            species_food = datos.get("species", especie_comp)
+        
+            energia = calc_energy_food(
+                datos,
+                species=species_food,
+            )
+        
             ena = calc_ena_food(datos)
 
             me = energia.get("ME", 0)
@@ -1558,9 +1564,19 @@ with tabs[3]:
     _gramos3 = food.get("gramos", 0.0)
 
     if _food_data3:
-        _food_energy3 = calc_energy_food(_food_data3)
+        _species_food3 = _food_data3.get("species", _especie3)
+    
+        _food_energy3 = calc_energy_food(
+            _food_data3,
+            species=_species_food3,
+        )
+    
         _food_ena3 = calc_ena_food(_food_data3)
-        _food_eb3 = calculate_energy_breakdown(_food_data3)
+    
+        _food_eb3 = calculate_energy_breakdown(
+            _food_data3,
+            species=_species_food3,
+        )
     else:
         _food_energy3 = {}
         _food_ena3 = 0.0
