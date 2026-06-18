@@ -1009,6 +1009,17 @@ def show_food_analysis():
 
     # ── Expander: Cálculo energético detallado (NRC) ──────────────────────────
     with st.expander("📋 Ver cálculo energético detallado", expanded=False):
+        equation_species = energy.get("equation_species", "perro")
+
+        if equation_species == "gato":
+            de_formula_text = "%DE = 87.9 - (0.88×FC_MS)"
+            me_formula_text = "ME = DE - (0.77×PB)"
+            species_label = "Gato"
+        else:
+            de_formula_text = "%DE = 91.2 - (1.43×FC_MS)"
+            me_formula_text = "ME = DE - (1.04×PB)"
+            species_label = "Perro"
+
         st.markdown(
             f"""
             <div style="background:#fffbe6;border-left:4px solid #FFB703;border-radius:8px;
@@ -1022,17 +1033,6 @@ def show_food_analysis():
             """,
             unsafe_allow_html=True,
         )
-
-        equation_species = energy.get("equation_species", "perro")
-
-        if equation_species == "gato":
-            de_formula_text = "%DE = 87.9 - (0.88×FC_MS)"
-            me_formula_text = "ME = DE - (0.77×PB)"
-            species_label = "Gato"
-        else:
-            de_formula_text = "%DE = 91.2 - (1.43×FC_MS)"
-            me_formula_text = "ME = DE - (1.04×PB)"
-            species_label = "Perro"
 
         st.markdown("#### 📋 Cálculo Paso a Paso (NRC)")
         energy_calc_rows = [
