@@ -876,7 +876,7 @@ with tabs[0]:
                 key="aplicar_ajuste_senior_mascota",
                 help=(
                     "Reduce el MER en un 15% para mascotas adultas senior. "
-                    "Se aplica solo cuando la condición corporal es ideal (BCS = 5)."
+                    "Puede aplicarse adicionalmente al ajuste por condición corporal bajo criterio veterinario."
                 ),
             )
 
@@ -1004,7 +1004,6 @@ with tabs[0]:
         senior_aplicado = False
         if (etapa == "adulto"
                 and aplicar_ajuste_senior
-                and bcs == 5
                 and not bcs_disabled):
             mer_final = mer_final * SENIOR_FACTOR
             senior_aplicado = True
