@@ -851,9 +851,9 @@ if not _foods_cache:
 FOODS: dict = _foods_cache if _foods_cache else _FOODS_FALLBACK
 
 
-def get_food_names():
+def get_food_data(food_name):
     """Devuelve la lista ordenada de nombres de alimentos disponibles."""
-    return sorted(list(FOODS.keys()))
+    return FOODS.get(food_name, None)
 
 
 def get_food_data(food_name):
