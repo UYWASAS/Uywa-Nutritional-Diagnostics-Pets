@@ -157,7 +157,11 @@ def load_diets_from_csv(csv_path: str) -> dict:
                         "source_ee": row.get("Fuente_EE", "").strip(),
                         "source_fc": row.get("Fuente_FC", "").strip(),
                     }
-                    foods[nombre] = entry
+                    food_key = f"{id_alimento} - {nombre} | {especie} | {etapa}"
+                    entry["display_name"] = food_key
+                    entry["name"] = nombre
+                    
+                    foods[food_key] = entry
                 except (ValueError, KeyError):
                     continue
     except Exception:
