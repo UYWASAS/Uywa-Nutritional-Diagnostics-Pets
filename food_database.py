@@ -353,7 +353,11 @@ def load_diets_from_csv_v2(csv_path: str) -> dict:
                         "category": etapa,
                         "emoji": emoji,
                     }
-                    foods[nombre] = entry
+                    food_key = f"{id_alimento} - {nombre} | {especie} | {etapa}"
+                    entry["display_name"] = food_key
+                    entry["name"] = nombre
+                    
+                    foods[food_key] = entry
 
                 except (ValueError, KeyError) as exc:
                     logging.warning("CSV v2 row %d (%s): error de parseo — %s", row_num, nombre, exc)
@@ -575,7 +579,11 @@ def load_diets_from_xlsx_v2(xlsx_path: str) -> dict:
                     "emoji": emoji,
                 }
 
-                foods[nombre] = entry
+                food_key = f"{id_alimento} - {nombre} | {especie} | {etapa}"
+                entry["display_name"] = food_key
+                entry["name"] = nombre
+                
+                foods[food_key] = entry
 
             except (ValueError, KeyError, TypeError) as exc:
                 logging.warning(
