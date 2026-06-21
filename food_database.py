@@ -51,6 +51,34 @@ _DEFAULT_CSV_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "co
 _foods_cache: dict = {}
 
 
+def make_food_key(id_alimento, nombre, especie, etapa, marca=""):
+    """
+    Construye una clave única para cada alimento.
+
+    No se usa solamente el nombre porque varias dietas pueden compartir el mismo
+    nombre comercial, pero corresponder a especies, etapas o IDs diferentes.
+    """
+    id_txt = str(id_alimento or "").strip()
+    nombre_txt = str(nombre or "").strip()
+    marca_txt = str(marca or "").strip()
+    especie_txt = str(especie or "").strip()
+    etapa_txt = str(etapa or "").strip()
+
+    partes = []
+    if id_txt:
+        partes.append(id_txt)
+    if nombre_txt:
+        partes.append(nombre_txt)
+    if marca_txt:
+        partes.append(marca_txt)
+    if especie_txt:
+        partes.append(especie_txt)
+    if etapa_txt:
+        partes.append(etapa_txt)
+
+    return " | ".join(partes) if partes else nombre_txt
+
+
 def validate_csv(csv_path: str) -> list[str]:
     """
     Valida la estructura del archivo CSV de dietas comerciales.
@@ -157,11 +185,7 @@ def load_diets_from_csv(csv_path: str) -> dict:
                         "source_ee": row.get("Fuente_EE", "").strip(),
                         "source_fc": row.get("Fuente_FC", "").strip(),
                     }
-                    food_key = f"{id_alimento} - {nombre} | {especie} | {etapa}"
-                    entry["display_name"] = food_key
-                    entry["name"] = nombre
-                    
-                    foods[food_key] = entry
+                    foods[nombre] = entry
                 except (ValueError, KeyError):
                     continue
     except Exception:
@@ -353,11 +377,7 @@ def load_diets_from_csv_v2(csv_path: str) -> dict:
                         "category": etapa,
                         "emoji": emoji,
                     }
-                    food_key = f"{id_alimento} - {nombre} | {especie} | {etapa}"
-                    entry["display_name"] = food_key
-                    entry["name"] = nombre
-                    
-                    foods[food_key] = entry
+                    foods[nombre] = entry
 
                 except (ValueError, KeyError) as exc:
                     logging.warning("CSV v2 row %d (%s): error de parseo — %s", row_num, nombre, exc)
@@ -579,11 +599,7 @@ def load_diets_from_xlsx_v2(xlsx_path: str) -> dict:
                     "emoji": emoji,
                 }
 
-                food_key = f"{id_alimento} - {nombre} | {especie} | {etapa}"
-                entry["display_name"] = food_key
-                entry["name"] = nombre
-                
-                foods[food_key] = entry
+                foods[nombre] = entry
 
             except (ValueError, KeyError, TypeError) as exc:
                 logging.warning(
@@ -859,9 +875,9 @@ if not _foods_cache:
 FOODS: dict = _foods_cache if _foods_cache else _FOODS_FALLBACK
 
 
-def get_food_data(food_name):
+def get_food_names():
     """Devuelve la lista ordenada de nombres de alimentos disponibles."""
-    return FOODS.get(food_name, None)
+    return sorted(list(FOODS.keys()))
 
 
 def get_food_data(food_name):
