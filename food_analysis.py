@@ -4,7 +4,15 @@ from plotly.subplots import make_subplots
 import pandas as pd
 import streamlit as st
 
-from food_database import FOODS, calculate_energy, calculate_ena, calculate_energy_breakdown, get_food_names, get_food_data
+from food_database import (
+    FOODS,
+    calculate_energy,
+    calculate_ena,
+    calculate_energy_breakdown,
+    get_food_names,
+    get_food_data,
+    infer_me_from_manufacturer_dog_10kg,
+)
 
 # ---- Paleta de colores corporativa ----
 COLORS = {
@@ -782,6 +790,30 @@ def show_food_analysis():
         species=species_energy,
     )
 
+    # ── Energías alternativas del fabricante ────────────────────────────────
+    me_formula_kcal_100g = float(energy.get("ME", 0.0) or 0.0)
+
+    me_manufacturer_kcal_kg = float(
+        edited_food_data.get("ME_manufacturer_kcal_kg", 0.0) or 0.0
+    )
+    me_manufacturer_kcal_100g = (
+        me_manufacturer_kcal_kg / 10.0
+        if me_manufacturer_kcal_kg > 0
+        else 0.0
+    )
+
+    manufacturer_g_day_10kg = float(
+        edited_food_data.get("manufacturer_g_day_dog_10kg", 0.0) or 0.0
+    )
+
+    me_inferred_kcal_kg = infer_me_from_manufacturer_dog_10kg(
+        manufacturer_g_day_10kg
+    )
+    me_inferred_kcal_100g = (
+        me_inferred_kcal_kg / 10.0
+        if me_inferred_kcal_kg > 0
+        else 0.0
+    )
     # ---- Métricas de nutrientes proximales ----
     st.markdown("#### 📊 Composición Proximal")
 
@@ -811,6 +843,66 @@ def show_food_analysis():
         st.metric("📐 FC en base MS", f"{energy['FC_MS']:.2f} %",
                   help="FC_MS = (FC / MS) × 100")
 
+    # ── Datos energéticos del fabricante ─────────────────────────────────────
+    st.markdown("---")
+    st.subheader("🏷️ Datos energéticos del fabricante")
+
+    fab_col1, fab_col2, fab_col3 = st.columns(3)
+
+    with fab_col1:
+        st.metric(
+            "ME fórmula Uywa",
+            f"{me_formula_kcal_100g:.1f} kcal/100g",
+            help="Energía metabolizable estimada desde composición proximal.",
+        )
+
+    with fab_col2:
+        if me_manufacturer_kcal_100g > 0:
+            st.metric(
+                "ME declarada fabricante",
+                f"{me_manufacturer_kcal_100g:.1f} kcal/100g",
+                help="Energía declarada en etiqueta o ficha técnica del fabricante.",
+            )
+        else:
+            st.metric("ME declarada fabricante", "No disponible")
+
+    with fab_col3:
+        if me_inferred_kcal_100g > 0:
+            st.metric(
+                "ME inferida por gramaje",
+                f"{me_inferred_kcal_100g:.1f} kcal/100g",
+                help="Estimación inversa desde la dosis declarada para perro adulto entero de 10 kg.",
+            )
+        else:
+            st.metric("ME inferida por gramaje", "No disponible")
+
+    opciones_me = ["Fórmula Uywa"]
+
+    if me_manufacturer_kcal_100g > 0:
+        opciones_me.append("ME declarada fabricante")
+
+    if me_inferred_kcal_100g > 0:
+        opciones_me.append("ME inferida desde gramaje fabricante")
+
+    fuente_me = st.selectbox(
+        "Fuente energética para calcular la dosis",
+        opciones_me,
+        key=f"fuente_me_{safe_key}",
+        help="Selecciona qué valor de energía metabolizable se usará para calcular aporte y gramos recomendados.",
+    )
+
+    if fuente_me == "ME declarada fabricante":
+        me_usada_kcal_100g = me_manufacturer_kcal_100g
+    elif fuente_me == "ME inferida desde gramaje fabricante":
+        me_usada_kcal_100g = me_inferred_kcal_100g
+    else:
+        me_usada_kcal_100g = me_formula_kcal_100g
+
+    st.caption(
+        f"ME usada para el cálculo de dosis: **{me_usada_kcal_100g:.1f} kcal/100g** "
+        f"({fuente_me})."
+    )
+    
     # ---- Cálculo de Aporte Energético ----
     st.subheader("🧮 Cálculo de Aporte Energético")
     st.markdown(
@@ -829,7 +921,7 @@ def show_food_analysis():
     )
 
     # Energía metabolizable aportada
-    me_por_100g = energy["ME"]
+    me_por_100g = me_usada_kcal_100g
     me_total_kcal = (me_por_100g / 100.0) * gramos_input
 
     # ── Guardar resultados actuales para resumen, exportación y seguimiento ──
