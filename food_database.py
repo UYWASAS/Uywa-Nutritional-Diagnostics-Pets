@@ -873,7 +873,11 @@ if not _foods_cache:
 
 # Paso 4: Si todo falla, usar diccionario de respaldo
 FOODS: dict = _foods_cache if _foods_cache else _FOODS_FALLBACK
-
+print("DEBUG FOOD_DATABASE VERSION: UNIQUE_KEYS_2026_06_21")
+print("DEBUG TOTAL FOODS:", len(FOODS))
+print("DEBUG CANINOS:", sum(1 for d in FOODS.values() if "canino" in str(d.get("species", "")).lower()))
+print("DEBUG FELINOS:", sum(1 for d in FOODS.values() if "felino" in str(d.get("species", "")).lower()))
+print("DEBUG PRIMERAS CLAVES:", list(FOODS.keys())[:5])
 
 def get_food_names():
     """Devuelve la lista ordenada de nombres de alimentos disponibles."""
