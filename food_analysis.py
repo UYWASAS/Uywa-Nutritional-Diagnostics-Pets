@@ -1192,6 +1192,10 @@ def show_food_analysis():
         edited_food_data,
         species=species_energy,
     )
+    bd_single["ME"] = me_por_100g
+    bd_single["me_pb"] = round(me_por_100g * bd_single["pct_pb"] / 100.0, 2)
+    bd_single["me_ee"] = round(me_por_100g * bd_single["pct_ee"] / 100.0, 2)
+    bd_single["me_cho"] = round(me_por_100g * bd_single["pct_cho"] / 100.0, 2)
 
     tec_col1, tec_col2 = st.columns([1.2, 1])
 
@@ -1236,7 +1240,7 @@ def show_food_analysis():
         ee_pct = float(edited_food_data.get("EE", 0))
         fc_pct = float(edited_food_data.get("FC", 0))
         ena_pct = float(ENA)
-        me_pct = float(energy.get("ME", 0))
+        me_pct = float(me_por_100g)
 
         perfil_tags = []
 
