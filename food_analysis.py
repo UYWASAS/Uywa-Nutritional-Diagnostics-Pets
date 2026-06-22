@@ -928,6 +928,12 @@ def show_food_analysis():
     st.session_state["me_alimento_actual"] = me_por_100g
     st.session_state["energia_aportada_actual"] = me_total_kcal
 
+    # Fuente energética utilizada en el análisis
+    st.session_state["fuente_me_actual"] = fuente_me
+    st.session_state["me_formula_uywa_actual"] = me_formula_kcal_100g
+    st.session_state["me_manufacturer_actual"] = me_manufacturer_kcal_100g
+    st.session_state["me_inferred_manufacturer_actual"] = me_inferred_kcal_100g
+
     if st.session_state.get("energia_actual", None):
         mer_tmp = st.session_state.get("energia_actual")
         st.session_state["cobertura_energia_actual"] = (
