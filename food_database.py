@@ -185,7 +185,18 @@ def load_diets_from_csv(csv_path: str) -> dict:
                         "source_ee": row.get("Fuente_EE", "").strip(),
                         "source_fc": row.get("Fuente_FC", "").strip(),
                     }
-                    foods[nombre] = entry
+                    food_key = make_food_key(
+                        entry.get("id", ""),
+                        nombre,
+                        entry.get("species", ""),
+                        entry.get("life_stage", ""),
+                        entry.get("brand", ""),
+                    )
+                    
+                    entry["display_name"] = food_key
+                    entry["name"] = nombre
+                    
+                    foods[food_key] = entry
                 except (ValueError, KeyError):
                     continue
     except Exception:
@@ -377,8 +388,18 @@ def load_diets_from_csv_v2(csv_path: str) -> dict:
                         "category": etapa,
                         "emoji": emoji,
                     }
-                    foods[nombre] = entry
-
+                    food_key = make_food_key(
+                        entry.get("id", ""),
+                        nombre,
+                        entry.get("species", ""),
+                        entry.get("life_stage", ""),
+                        entry.get("brand", ""),
+                    )
+                    
+                    entry["display_name"] = food_key
+                    entry["name"] = nombre
+                    
+                    foods[food_key] = entry
                 except (ValueError, KeyError) as exc:
                     logging.warning("CSV v2 row %d (%s): error de parseo — %s", row_num, nombre, exc)
                     continue
@@ -599,7 +620,18 @@ def load_diets_from_xlsx_v2(xlsx_path: str) -> dict:
                     "emoji": emoji,
                 }
 
-                foods[nombre] = entry
+                food_key = make_food_key(
+                    entry.get("id", ""),
+                    nombre,
+                    entry.get("species", ""),
+                    entry.get("life_stage", ""),
+                    entry.get("brand", ""),
+                )
+                
+                entry["display_name"] = food_key
+                entry["name"] = nombre
+                
+                foods[food_key] = entry
 
             except (ValueError, KeyError, TypeError) as exc:
                 logging.warning(
