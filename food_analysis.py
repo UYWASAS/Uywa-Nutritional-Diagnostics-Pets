@@ -492,44 +492,37 @@ def plot_nutrient_comparison(mer_animal, me_total_kcal, req_pb_g, gramos_pb, req
     return fig
 
 
+def normalize_species(value):
+    value = str(value or "").strip().lower()
+
+    if value in ["perro", "canino", "canine", "dog"]:
+        return "perro"
+
+    if value in ["gato", "felino", "feline", "cat"]:
+        return "gato"
+
+    return value
+
+
 def get_foods_by_species(species: str) -> list[str]:
     """
     Filtra alimentos por especie del diccionario FOODS.
-
-    Parámetros:
-        species (str): "perro", "gato" o vacío (todos)
-
-    Retorna:
-        list[str]: Nombres de alimentos disponibles ordenados alfabéticamente
+    Acepta equivalencias: perro/canino y gato/felino.
     """
-    if not species or species.strip() == "":
+
+    if not species or str(species).strip() == "":
         return sorted(list(FOODS.keys()))
 
-    species_lower = species.lower().strip()
+    species_norm = normalize_species(species)
     alimentos_filtrados = []
 
-    # "perro" in session_state maps to "canino" in the XLSX species field
-    # "gato" in session_state maps to "felino" or "gato" in the XLSX species field
-    _PERRO_TERMS = {"perro", "canino", "canine"}
-    _GATO_TERMS = {"gato", "felino", "feline"}
-
     for nombre, datos in FOODS.items():
-        food_species = datos.get("species", "").lower()
-        food_category = datos.get("category", "").lower()
+        food_species_norm = normalize_species(datos.get("species", ""))
 
-        if "perro" in species_lower:
-            if any(t in food_species for t in _PERRO_TERMS) or any(t in food_category for t in _PERRO_TERMS):
-                alimentos_filtrados.append(nombre)
-        elif "gato" in species_lower:
-            if any(t in food_species for t in _GATO_TERMS) or any(t in food_category for t in _GATO_TERMS):
-                alimentos_filtrados.append(nombre)
-
-    # Si no hay resultados filtrados, devolver todos (fallback)
-    if not alimentos_filtrados:
-        return sorted(list(FOODS.keys()))
+        if food_species_norm == species_norm:
+            alimentos_filtrados.append(nombre)
 
     return sorted(alimentos_filtrados)
-
 
 def filtrar_alimentos_por_busqueda(query: str, alimentos: list) -> list[str]:
     """
