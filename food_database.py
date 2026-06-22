@@ -50,6 +50,27 @@ _DEFAULT_CSV_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "co
 # Caché en memoria: se llena al importar el módulo
 _foods_cache: dict = {}
 
+def safe_optional_float(value, default=0.0):
+    """
+    Convierte valores opcionales del Excel/CSV a float.
+    Soporta celdas vacías, NaN, texto vacío y valores no numéricos.
+    """
+    try:
+        if value is None:
+            return default
+
+        if pd.isna(value):
+            return default
+
+        value_txt = str(value).strip()
+
+        if value_txt == "" or value_txt.lower() == "nan":
+            return default
+
+        return float(value_txt)
+
+    except Exception:
+        return default
 
 def make_food_key(id_alimento, nombre, especie, etapa, marca=""):
     """
@@ -571,6 +592,16 @@ def load_diets_from_xlsx_v2(xlsx_path: str) -> dict:
                 fuente_fc = str(row.get("Fuente_FC", "")).strip()
                 otros_raw = row.get("Otros", "")
                 otros = str(otros_raw).strip() if pd.notna(otros_raw) else ""
+                                # --- DATOS OPCIONALES DEL FABRICANTE ---
+                me_manufacturer_kcal_kg = safe_optional_float(
+                    row.get("ME_manufacturer_kcal_kg", 0),
+                    0.0,
+                )
+
+                manufacturer_g_day_dog_10kg = safe_optional_float(
+                    row.get("manufacturer_g_day_dog_10kg", 0),
+                    0.0,
+                )
 
                 # --- EMOJI POR ESPECIE ---
                 especie_lower = especie.lower()
@@ -608,6 +639,8 @@ def load_diets_from_xlsx_v2(xlsx_path: str) -> dict:
                     "species": especie,
                     "life_stage": etapa,
                     "price_usd_kg": precio,
+                    "ME_manufacturer_kcal_kg": round(me_manufacturer_kcal_kg, 2),
+                    "manufacturer_g_day_dog_10kg": round(manufacturer_g_day_dog_10kg, 2),
                     # Info nutricional detallada
                     "ingredients": ingredientes,
                     "source_pb": fuente_pb,
@@ -886,7 +919,35 @@ def calculate_energy_breakdown(food_data, species="perro"):
         "DE_pct": energy["DE_pct"],
         "equation_species": energy["equation_species"],
     }
+def infer_me_from_manufacturer_dog_10kg(grams_day):
+    """
+    Estima la energía metabolizable del alimento a partir del gramaje
+    recomendado por el fabricante para un perro adulto entero de 10 kg
+    con actividad normal.
 
+    Modelo actual Uywa:
+        RER = 70 × peso^0.75
+        Factor perro adulto entero = 1.8
+
+    Retorna:
+        kcal/kg
+    """
+    try:
+        grams_day = safe_optional_float(grams_day, 0.0)
+
+        if grams_day <= 0:
+            return 0.0
+
+        peso_referencia = 10.0
+        rer = 70.0 * (peso_referencia ** 0.75)
+        mer = rer * 1.8
+
+        me_kcal_kg = (mer / grams_day) * 1000.0
+
+        return round(me_kcal_kg, 2)
+
+    except Exception:
+        return 0.0
 # ---------------------------------------------------------------------------
 # Inicialización: intentar cargar desde XLSX v2 (21 columnas, recalcula energía);
 # si falla intentar CSV v2, luego CSV v1, y en último recurso usar fallback.
