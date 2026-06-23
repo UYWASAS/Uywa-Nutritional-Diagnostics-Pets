@@ -580,11 +580,18 @@ def load_diets_from_xlsx_v2(xlsx_path: str) -> dict:
                 precio_val = row.get("Precio_USD_kg")
                 precio = float(precio_val) if pd.notna(precio_val) else None
 
-                # Ingredientes: la columna puede llamarse con el texto largo o corto
-                ingredientes_raw = row.get(
+                # Ingredientes: aceptar diferentes nombres de columna
+                ingredientes_raw = ""
+                
+                for possible_col in [
+                    "Ingredientes (10 primeros de la lista)",
                     "Ingredientes (5 primeros de la lista)",
-                    row.get("Ingredientes", ""),
-                )
+                    "Ingredientes",
+                ]:
+                    if possible_col in row.index:
+                        ingredientes_raw = row.get(possible_col, "")
+                        break
+                
                 ingredientes = str(ingredientes_raw).strip() if pd.notna(ingredientes_raw) else ""
 
                 fuente_pb = str(row.get("Fuente_PB", "")).strip()
