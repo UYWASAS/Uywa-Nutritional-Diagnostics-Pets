@@ -534,38 +534,22 @@ def get_foods_by_species(species: str) -> list[str]:
 
 def filtrar_alimentos_por_busqueda(query: str, alimentos: list) -> list[str]:
     """
-    Filtra alimentos por búsqueda de texto en nombre/marca (case-insensitive).
-
-    Parámetros:
-        query (str): Texto de búsqueda (puede estar vacío)
-        alimentos (list): Lista de nombres de alimentos
-
-    Retorna:
-        list[str]: Alimentos que coinciden con la búsqueda
+    Filtra alimentos por búsqueda extendida:
+    nombre, marca, especie, etapa, categoría, ingredientes y fuentes nutricionales.
     """
     if not query or query.strip() == "":
-        return alimentos
+        return sorted(alimentos, key=get_food_display_name)
 
-    query_lower = query.lower().strip()
-   
-    def filtrar_alimentos_por_busqueda(query: str, alimentos: list) -> list[str]:
-        """
-        Filtra alimentos por búsqueda extendida:
-        nombre, marca, especie, etapa, categoría, ingredientes y fuentes nutricionales.
-        """
-        if not query or query.strip() == "":
-            return alimentos
-    
-        query_terms = query.lower().strip().split()
-    
-        resultados = []
-        for alimento in alimentos:
-            search_text = get_food_search_text(alimento)
-    
-            if all(term in search_text for term in query_terms):
-                resultados.append(alimento)
-    
-        return sorted(resultados, key=get_food_display_name)
+    query_terms = query.lower().strip().split()
+
+    resultados = []
+    for alimento in alimentos:
+        search_text = get_food_search_text(alimento)
+
+        if all(term in search_text for term in query_terms):
+            resultados.append(alimento)
+
+    return sorted(resultados, key=get_food_display_name)
 
 def get_food_display_name(food_name: str) -> str:
     """
