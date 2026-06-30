@@ -119,59 +119,89 @@ def generar_interpretacion_alimento(nombre, cobertura, aporte, mer,
 
 def plot_macronutrients_pie(food_name, food_data):
     """
-    Crea un gráfico de torta mostrando la distribución de macronutrientes (sin humedad).
-
-    Parámetros:
-        food_name (str): Nombre del alimento.
-        food_data (dict): Diccionario con PB, EE, Ash, Humidity, FC.
-
-    Retorna:
-        plotly.graph_objects.Figure
+    Donut premium de composición proximal del alimento.
+    Muestra proporción de PB, EE, Cenizas, Humedad, FC y ENA.
     """
     ENA = calculate_ena(food_data)
-    labels = []
-    values = []
-    colors = []
 
-    for key, label in LABELS.items():
-        val = food_data[key] if key != "ENA" else ENA
-        if val > 0:
-            labels.append(label)
-            values.append(val)
-            colors.append(COLORS[key])
+    ms = 100 - float(food_data.get("Humidity", 0) or 0)
+    me = float(food_data.get("ME", 0) or 0)
 
-    fig = go.Figure(
+    food_title = get_food_short_name(food_name) if "get_food_short_name" in globals() else food_name
+
+    nutrient_data = [
+        ("Proteína", float(food_data.get("PB", 0) or 0), "#DC2626"),
+        ("Grasa", float(food_data.get("EE", 0) or 0), "#F59E0B"),
+        ("Fibra", float(food_data.get("FC", 0) or 0), "#16A34A"),
+        ("Cenizas", float(food_data.get("Ash", 0) or 0), "#64748B"),
+        ("Humedad", float(food_data.get("Humidity", 0) or 0), "#38BDF8"),
+        ("ENA", float(ENA or 0), "#2563EB"),
+    ]
+
+    labels = [x[0] for x in nutrient_data if x[1] > 0]
+    values = [x[1] for x in nutrient_data if x[1] > 0]
+    colors = [x[2] for x in nutrient_data if x[1] > 0]
+
+    fig = go.Figure()
+
+    fig.add_trace(
         go.Pie(
             labels=labels,
             values=values,
-            marker=dict(colors=colors),
-            hole=0.4,
-            textinfo="label+percent",
-            textfont=dict(size=14),
-            hovertemplate="<b>%{label}</b>: %{value:.2f}%<extra></extra>",
+            hole=0.58,
+            sort=False,
+            direction="clockwise",
+            marker=dict(
+                colors=colors,
+                line=dict(color="#FFFFFF", width=3),
+            ),
+            textinfo="percent",
+            textposition="inside",
+            insidetextorientation="radial",
+            hovertemplate="<b>%{label}</b><br>%{value:.1f}%<extra></extra>",
         )
     )
+
+    fig.add_annotation(
+        text=f"<b>MS</b><br>{ms:.1f}%",
+        x=0.5,
+        y=0.54,
+        font=dict(size=22, color="#0F172A"),
+        showarrow=False,
+    )
+
+    fig.add_annotation(
+        text=f"ENA {ENA:.1f}%",
+        x=0.5,
+        y=0.43,
+        font=dict(size=13, color="#64748B"),
+        showarrow=False,
+    )
+
     fig.update_layout(
         title=dict(
-            text=f"Distribución Composicional — {food_name}",
-            font=dict(size=20, family="Montserrat, sans-serif"),
+            text=f"Composición proximal · {food_title}",
+            font=dict(size=18, family="Inter, Montserrat, sans-serif", color="#0F172A"),
+            x=0.02,
+            xanchor="left",
         ),
-        plot_bgcolor="rgba(0,0,0,0)",
+        height=460,
+        margin=dict(t=70, b=70, l=20, r=20),
         paper_bgcolor="rgba(0,0,0,0)",
-        height=550,
+        plot_bgcolor="rgba(0,0,0,0)",
         legend=dict(
             orientation="h",
             yanchor="bottom",
-            y=-0.25,
+            y=-0.12,
             xanchor="center",
             x=0.5,
-            font=dict(size=13),
+            font=dict(size=12, color="#334155"),
         ),
-        margin=dict(t=70, b=110, l=20, r=20),
+        font=dict(family="Inter, Montserrat, sans-serif", color="#334155"),
     )
+
     return fig
-
-
+    
 def show_energy_breakdown_cards(selected_foods):
     """
     Renderiza cards individuales por alimento con el desglose energético porcentual
