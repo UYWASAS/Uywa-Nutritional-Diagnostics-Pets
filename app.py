@@ -397,17 +397,13 @@ tabs = st.tabs([
 
 # ======================== BLOQUE 5.1: TAB PERFIL EDITABLE + CÁLCULOS COMPLETO ========================
 with tabs[0]:
-    st.header("🐾 Perfil Clínico-Nutricional")
-    st.markdown(
-        """
-        <div style="background:#ffffff;border-left:5px solid #2176FF;
-                    border-radius:10px;padding:14px 18px;margin-bottom:18px;
-                    box-shadow:0 2px 8px rgba(0,0,0,0.06);">
-            <b>Objetivo:</b> registrar los datos del paciente, estimar sus requerimientos energéticos
-            y generar una interpretación nutricional inicial.
-        </div>
-        """,
-        unsafe_allow_html=True,
+    render_section_header(
+        title="Perfil clínico-nutricional",
+        kicker="Paciente y requerimiento energético",
+        subtitle=(
+            "Registra los datos del paciente, estima sus requerimientos energéticos "
+            "y genera una interpretación nutricional inicial."
+        ),
     )
 
     # --- Formulario de edición en expander ---
@@ -828,65 +824,45 @@ with tabs[0]:
     dash1, dash2, dash3 = st.columns(3)
 
     with dash1:
-        st.markdown(
-            f"""
-            <div style="background:#ffffff;border-radius:14px;padding:18px;
-                        border-left:5px solid #2176FF;
-                        box-shadow:0 2px 10px rgba(0,0,0,0.07);">
-                <div style="font-size:0.85rem;color:#5a6e8c;font-weight:700;">PACIENTE</div>
-                <div style="font-size:1.45rem;font-weight:800;color:#1f2d3d;">{nombre_display}</div>
-                <div style="color:#5a6e8c;">{especie.capitalize()} · {etapa.capitalize()}</div>
-                <div style="margin-top:6px;">{fmt2(peso)} kg · {fmt2(edad)} años</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
+        render_kpi_card(
+            title="Paciente",
+            value=nombre_display,
+            unit=f"{especie.capitalize()} · {etapa.capitalize()}",
+            note=f"{fmt2(peso)} kg · {fmt2(edad)} años",
+            tone="blue",
         )
-
+    
     with dash2:
-        _risk_color = RIESGO_COLORES.get(_riesgo_preview, "#52B788")
-        _risk_icon = RIESGO_ICONS.get(_riesgo_preview, "🟢")
-
-        st.markdown(
-            f"""
-            <div style="background:#ffffff;border-radius:14px;padding:18px;
-                        border-left:5px solid {_risk_color};
-                        box-shadow:0 2px 10px rgba(0,0,0,0.07);">
-                <div style="font-size:0.85rem;color:#5a6e8c;font-weight:700;">ESTADO CORPORAL</div>
-                <div style="font-size:1.45rem;font-weight:800;color:#1f2d3d;">BCS {bcs}/9</div>
-                <div style="color:#5a6e8c;">{_estado_preview}</div>
-                <div style="margin-top:6px;">{_risk_icon} Riesgo {_riesgo_preview}</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
+        _risk_tone = {
+            "Bajo": "green",
+            "Moderado": "orange",
+            "Alto": "red",
+        }.get(_riesgo_preview, "green")
+    
+        render_kpi_card(
+            title="Estado corporal",
+            value=f"BCS {bcs}/9",
+            unit=_estado_preview,
+            note=f"Riesgo {_riesgo_preview}",
+            tone=_risk_tone,
         )
-
+    
     with dash3:
-        st.markdown(
-            f"""
-            <div style="background:#ffffff;border-radius:14px;padding:18px;
-                        border-left:5px solid #F4845F;
-                        box-shadow:0 2px 10px rgba(0,0,0,0.07);">
-                <div style="font-size:0.85rem;color:#5a6e8c;font-weight:700;">ENERGÍA FINAL</div>
-                <div style="font-size:1.45rem;font-weight:800;color:#1f2d3d;">{fmt2(mer_final)} kcal/día</div>
-                <div style="color:#5a6e8c;">MER ajustado</div>
-                <div style="margin-top:6px;">Senior: {"Sí" if senior_aplicado else "No"}</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
+        render_kpi_card(
+            title="Energía final",
+            value=f"{fmt2(mer_final)}",
+            unit="kcal/día",
+            note=f"Senior: {'Sí' if senior_aplicado else 'No'}",
+            tone="orange",
         )
         
     # ===================== DIAGNÓSTICO NUTRICIONAL INICIAL (ANCHO COMPLETO) =====================
     st.markdown("<hr class='section-divider'>", unsafe_allow_html=True)
-    st.markdown(
-        """
-        <div style="margin-top:18px;margin-bottom:10px;">
-            <h3 style="color:#1f2d3d;margin-bottom:4px;">🩺 Estado corporal y diagnóstico inicial</h3>
-            <p style="color:#5a6e8c;margin-top:0;">
-                Interpretación automática basada en BCS, edad, etapa de vida y condición fisiológica.
-            </p>
-        </div>
-        """,
-        unsafe_allow_html=True,
+
+    render_section_header(
+        title="Estado corporal y diagnóstico inicial",
+        kicker="Interpretación clínica",
+        subtitle="Interpretación automática basada en BCS, edad, etapa de vida y condición fisiológica.",
     )
 
     _estado_corporal = get_estado_corporal(bcs)
@@ -906,69 +882,61 @@ with tabs[0]:
     st.session_state["prioridad_nutricional_tab1"] = _prioridad
     st.session_state["interpretacion_diagnostico_tab1"] = _interpretacion
 
-    st.markdown(
-        f"""
-        <div class="diagnostic-card {_riesgo_class}">
-            <div class="diagnostic-title">{_riesgo_icon} RIESGO {_riesgo.upper()}</div>
-            <div class="diagnostic-state">Estado corporal: {_estado_corporal} (BCS {bcs}/9)</div>
-            <div class="diagnostic-priority">🎯 Prioridad: {_prioridad}</div>
-            <div class="diagnostic-priority" style="font-weight:400;">💡 {_recomendacion}</div>
-            <div class="diagnostic-text">"{_interpretacion}"</div>
-        </div>
-        """,
-        unsafe_allow_html=True,
+    render_risk_card(
+        risk=_riesgo,
+        title=f"Riesgo {_riesgo.upper()}",
+        lines=[
+            f"Estado corporal: {_estado_corporal} (BCS {bcs}/9)",
+            f"Prioridad: {_prioridad}",
+            f"Recomendación: {_recomendacion}",
+        ],
+        text=_interpretacion,
     )
 
     # ===================== SECCIÓN ENERGÍA (ANCHO COMPLETO) =====================
     st.markdown("<hr class='section-divider'>", unsafe_allow_html=True)
-    st.markdown("**🔋 Requerimientos Energéticos**")
+    render_section_header(
+        title="Requerimiento energético",
+        kicker="Cálculo RER / MER",
+        subtitle="Resumen del requerimiento energético basal, fisiológico y ajustado del paciente.",
+    )
 
     ec1, ec2, ec3, ec4 = st.columns(4)
+
     with ec1:
-        st.markdown(
-            f"""
-            <div class="energy-card">
-                <div class="card-label">RER Actual</div>
-                <div class="card-value">{fmt2(energia_basal_actual)}</div>
-                <div style="font-size:11px; opacity:0.85;">kcal/día</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
+        render_kpi_card(
+            title="RER actual",
+            value=fmt2(energia_basal_actual),
+            unit="kcal/día",
+            note="Energía en reposo",
+            tone="blue",
         )
+    
     with ec2:
-        st.markdown(
-            f"""
-            <div class="energy-card green">
-                <div class="card-label">MER Adulto/Fisiológico</div>
-                <div class="card-value">{fmt2(mer_actual)}</div>
-                <div style="font-size:11px; opacity:0.85;">kcal/día</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
+        render_kpi_card(
+            title="MER fisiológico",
+            value=fmt2(mer_actual),
+            unit="kcal/día",
+            note=f"Factor {factor_fisiologico}",
+            tone="green",
         )
+    
     with ec3:
-        st.markdown(
-            f"""
-            <div class="energy-card orange">
-                <div class="card-label">MER Ajustado Final</div>
-                <div class="card-value">{fmt2(mer_final)}</div>
-                <div style="font-size:11px; opacity:0.85;">kcal/día</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
+        render_kpi_card(
+            title="MER ajustado final",
+            value=fmt2(mer_final),
+            unit="kcal/día",
+            note="Después de BCS/senior",
+            tone="orange",
         )
+    
     with ec4:
-        _senior_card_class = "purple" if senior_aplicado else "purple-inactive"
-        _senior_label = "×0.85 aplicado" if senior_aplicado else "No aplicado"
-        st.markdown(
-            f"""
-            <div class="energy-card {_senior_card_class}">
-                <div class="card-label">Factor Condición Final</div>
-                <div class="card-value">{factor_condicion_val}</div>
-                <div style="font-size:11px; opacity:0.85;">Senior: {_senior_label}</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
+        render_kpi_card(
+            title="Factor final",
+            value=factor_condicion_val,
+            unit="RER × factor",
+            note=f"Senior: {_senior_label}",
+            tone="purple" if senior_aplicado else "gray",
         )
 
     # Aviso cuando ajuste senior no se aplica por BCS ≠ 5
