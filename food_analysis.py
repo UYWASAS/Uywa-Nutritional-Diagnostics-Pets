@@ -498,8 +498,106 @@ def plot_nutrient_comparison(mer_animal, me_total_kcal, req_pb_g, gramos_pb, req
         font=dict(family="Montserrat, sans-serif"),
     )
     return fig
+def render_requirement_coverage_cards(
+    mer_animal,
+    me_total_kcal,
+    req_pb_g,
+    gramos_pb,
+    req_ee_g,
+    gramos_ee,
+):
+    """
+    Renderiza tarjetas horizontales de cobertura para energía, proteína y grasa.
+    """
 
+    def _status(aporte, req):
+        if req is None or req <= 0:
+            return {
+                "pct": None,
+                "label": "Sin referencia",
+                "color": "#64748B",
+                "bg": "#F8FAFC",
+            }
 
+        pct = (aporte / req) * 100.0
+
+        if pct < 90:
+            return {"pct": pct, "label": "Bajo", "color": "#2563EB", "bg": "#EFF6FF"}
+
+        if pct <= 110:
+            return {"pct": pct, "label": "En rango", "color": "#16A34A", "bg": "#ECFDF5"}
+
+        return {"pct": pct, "label": "Excedido", "color": "#F97316", "bg": "#FFF7ED"}
+
+    items = [
+        {"title": "Energía", "icon": "⚡", "req": mer_animal, "aporte": me_total_kcal, "unit": "kcal/día"},
+        {"title": "Proteína", "icon": "🥩", "req": req_pb_g, "aporte": gramos_pb, "unit": "g/día"},
+        {"title": "Grasa", "icon": "🧈", "req": req_ee_g, "aporte": gramos_ee, "unit": "g/día"},
+    ]
+
+    st.markdown("#### Cobertura de requerimientos")
+
+    for item in items:
+        status = _status(item["aporte"], item["req"])
+
+        if status["pct"] is None:
+            pct_text = "—"
+            bar_width = 0
+        else:
+            pct_text = f"{status['pct']:.0f}%"
+            bar_width = min(status["pct"], 140)
+
+        req_text = (
+            f"{item['req']:.1f} {item['unit']}"
+            if item["req"] is not None and item["req"] > 0
+            else "Sin referencia"
+        )
+
+        aporte_text = f"{item['aporte']:.1f} {item['unit']}"
+
+        st.markdown(
+            f"""
+            <div style="background:#FFFFFF;border:1px solid #E2E8F0;
+                        border-left:6px solid {status['color']};
+                        border-radius:18px;padding:16px 18px;margin-bottom:14px;
+                        box-shadow:0 8px 22px rgba(15,23,42,0.06);">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
+                    <div>
+                        <div style="font-size:0.82rem;color:#64748B;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;">
+                            {item['icon']} {item['title']}
+                        </div>
+                        <div style="font-size:0.92rem;color:#334155;margin-top:5px;">
+                            Requerimiento: <b>{req_text}</b> · Aporte: <b>{aporte_text}</b>
+                        </div>
+                    </div>
+                    <div style="background:{status['bg']};color:{status['color']};
+                                border:1px solid {status['color']};border-radius:999px;
+                                padding:6px 12px;font-size:0.85rem;font-weight:850;
+                                white-space:nowrap;">
+                        {status['label']} · {pct_text}
+                    </div>
+                </div>
+
+                <div style="background:#E2E8F0;height:10px;border-radius:999px;
+                            overflow:hidden;margin-top:14px;">
+                    <div style="width:{bar_width}%;max-width:100%;
+                                background:{status['color']};height:10px;
+                                border-radius:999px;">
+                    </div>
+                </div>
+
+                <div style="display:flex;justify-content:space-between;margin-top:6px;
+                            font-size:0.76rem;color:#64748B;font-weight:700;">
+                    <span>0%</span>
+                    <span>90%</span>
+                    <span>100%</span>
+                    <span>110%</span>
+                    <span>140%+</span>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 def normalize_species(value):
     value = str(value or "").strip().lower()
 
@@ -1435,160 +1533,7 @@ def show_food_analysis():
             html_aporte += f"<tr><td>{row['Concepto']}</td><td>{row['Valor']}</td></tr>"
         html_aporte += "</tbody></table>"
         st.markdown(html_aporte, unsafe_allow_html=True)
-
-    def render_requirement_coverage_cards(
-        mer_animal,
-        me_total_kcal,
-        req_pb_g,
-        gramos_pb,
-        req_ee_g,
-        gramos_ee,
-    ):
-        """
-        Renderiza tarjetas horizontales de cobertura para energía, proteína y grasa.
-        Reemplaza el gráfico de barras verticales Requerimiento vs Aporte.
-        """
-
-    def _status(aporte, req):
-        if req is None or req <= 0:
-            return {
-                "pct": None,
-                "label": "Sin referencia",
-                "color": "#64748B",
-                "bg": "#F8FAFC",
-            }
-
-        pct = (aporte / req) * 100.0
-
-        if pct < 90:
-            return {
-                "pct": pct,
-                "label": "Bajo",
-                "color": "#2563EB",
-                "bg": "#EFF6FF",
-            }
-
-        if pct <= 110:
-            return {
-                "pct": pct,
-                "label": "En rango",
-                "color": "#16A34A",
-                "bg": "#ECFDF5",
-            }
-
-        return {
-            "pct": pct,
-            "label": "Excedido",
-            "color": "#F97316",
-            "bg": "#FFF7ED",
-        }
-
-    items = [
-        {
-            "title": "Energía",
-            "icon": "⚡",
-            "req": mer_animal,
-            "aporte": me_total_kcal,
-            "unit": "kcal/día",
-        },
-        {
-            "title": "Proteína",
-            "icon": "🥩",
-            "req": req_pb_g,
-            "aporte": gramos_pb,
-            "unit": "g/día",
-        },
-        {
-            "title": "Grasa",
-            "icon": "🧈",
-            "req": req_ee_g,
-            "aporte": gramos_ee,
-            "unit": "g/día",
-        },
-    ]
-
-    st.markdown("#### Cobertura de requerimientos")
-
-    for item in items:
-        status = _status(item["aporte"], item["req"])
-
-        if status["pct"] is None:
-            pct_text = "—"
-            bar_width = 0
-        else:
-            pct_text = f"{status['pct']:.0f}%"
-            bar_width = min(status["pct"], 140)
-
-        req_text = (
-            f"{item['req']:.1f} {item['unit']}"
-            if item["req"] is not None and item["req"] > 0
-            else "Sin referencia"
-        )
-
-        aporte_text = f"{item['aporte']:.1f} {item['unit']}"
-
-        st.markdown(
-            f"""
-            <div style="
-                background:#FFFFFF;
-                border:1px solid #E2E8F0;
-                border-left:6px solid {status['color']};
-                border-radius:18px;
-                padding:16px 18px;
-                margin-bottom:14px;
-                box-shadow:0 8px 22px rgba(15,23,42,0.06);">
-
-                <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
-                    <div>
-                        <div style="font-size:0.82rem;color:#64748B;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;">
-                            {item['icon']} {item['title']}
-                        </div>
-                        <div style="font-size:0.92rem;color:#334155;margin-top:5px;">
-                            Requerimiento: <b>{req_text}</b> · Aporte: <b>{aporte_text}</b>
-                        </div>
-                    </div>
-
-                    <div style="
-                        background:{status['bg']};
-                        color:{status['color']};
-                        border:1px solid {status['color']};
-                        border-radius:999px;
-                        padding:6px 12px;
-                        font-size:0.85rem;
-                        font-weight:850;
-                        white-space:nowrap;">
-                        {status['label']} · {pct_text}
-                    </div>
-                </div>
-
-                <div style="
-                    background:#E2E8F0;
-                    height:10px;
-                    border-radius:999px;
-                    overflow:hidden;
-                    margin-top:14px;">
-                    <div style="
-                        width:{bar_width}%;
-                        max-width:100%;
-                        background:{status['color']};
-                        height:10px;
-                        border-radius:999px;">
-                    </div>
-                </div>
-
-                <div style="display:flex;justify-content:space-between;margin-top:6px;
-                            font-size:0.76rem;color:#64748B;font-weight:700;">
-                    <span>0%</span>
-                    <span>90%</span>
-                    <span>100%</span>
-                    <span>110%</span>
-                    <span>140%+</span>
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-    
+ 
     # ── Gráfico de composición (torta/donut) ──────────────────────────────────
     st.markdown("#### 📈 Composición del Alimento")
     st.plotly_chart(plot_macronutrients_pie(food_name, edited_food_data), use_container_width=True)
