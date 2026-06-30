@@ -547,9 +547,95 @@ def filtrar_alimentos_por_busqueda(query: str, alimentos: list) -> list[str]:
         return alimentos
 
     query_lower = query.lower().strip()
-    resultados = [alim for alim in alimentos if query_lower in alim.lower()]
-    return sorted(resultados)
+   
+    def filtrar_alimentos_por_busqueda(query: str, alimentos: list) -> list[str]:
+        """
+        Filtra alimentos por búsqueda extendida:
+        nombre, marca, especie, etapa, categoría, ingredientes y fuentes nutricionales.
+        """
+        if not query or query.strip() == "":
+            return alimentos
+    
+        query_terms = query.lower().strip().split()
+    
+        resultados = []
+        for alimento in alimentos:
+            search_text = get_food_search_text(alimento)
+    
+            if all(term in search_text for term in query_terms):
+                resultados.append(alimento)
+    
+        return sorted(resultados, key=get_food_display_name)
 
+def get_food_display_name(food_name: str) -> str:
+    """
+    Devuelve una etiqueta limpia para mostrar alimentos en selectbox/multiselect.
+    No cambia la clave real del alimento.
+    """
+    data = FOODS.get(food_name, {}) or {}
+
+    nombre = str(data.get("name", "") or "").strip()
+    marca = str(data.get("brand", "") or "").strip()
+    etapa = str(data.get("life_stage", "") or "").strip()
+    especie = str(data.get("species", "") or "").strip()
+
+    # Si no existen campos separados, limpia el nombre original.
+    if not nombre:
+        partes = [p.strip() for p in str(food_name).split("|")]
+        if len(partes) >= 5:
+            nombre = partes[1]
+            marca = partes[2]
+            especie = partes[3]
+            etapa = partes[4]
+        else:
+            nombre = food_name
+
+    items = [x for x in [nombre, marca, especie.capitalize(), etapa] if x]
+    return " · ".join(items)
+
+
+def get_food_short_name(food_name: str) -> str:
+    """
+    Nombre corto para títulos y encabezados.
+    """
+    data = FOODS.get(food_name, {}) or {}
+    nombre = str(data.get("name", "") or "").strip()
+    marca = str(data.get("brand", "") or "").strip()
+
+    if nombre and marca:
+        return f"{nombre} · {marca}"
+
+    if nombre:
+        return nombre
+
+    partes = [p.strip() for p in str(food_name).split("|")]
+    if len(partes) >= 3:
+        return f"{partes[1]} · {partes[2]}"
+
+    return food_name
+
+
+def get_food_search_text(food_name: str) -> str:
+    """
+    Texto ampliado para búsqueda por nombre, marca, especie, etapa, categoría e ingredientes.
+    """
+    data = FOODS.get(food_name, {}) or {}
+
+    fields = [
+        food_name,
+        data.get("name", ""),
+        data.get("brand", ""),
+        data.get("species", ""),
+        data.get("life_stage", ""),
+        data.get("category", ""),
+        data.get("description", ""),
+        data.get("ingredients", ""),
+        data.get("source_pb", ""),
+        data.get("source_ee", ""),
+        data.get("source_fc", ""),
+    ]
+
+    return " ".join(str(x) for x in fields if x).lower()
 
 def show_food_analysis():
     """
@@ -676,6 +762,7 @@ def show_food_analysis():
         alimentos_filtrados,
         key="analysis_food_selector",
         help="Elige el alimento que consume tu mascota",
+        format_func=get_food_display_name,
     )
 
     # Guardar en session_state para otras pestañas
@@ -687,13 +774,17 @@ def show_food_analysis():
         st.error("No se encontraron datos para el alimento seleccionado.")
         return
 
+    food_title = get_food_short_name(food_name)
+    food_display = get_food_display_name(food_name)
+    
     # ---- Encabezado del alimento ----
     st.markdown(
         f"""
         <div style="background:linear-gradient(90deg,#2176ff11,#eef4fc);
                     border-left:5px solid #2176FF;border-radius:10px;padding:16px 20px;margin-bottom:16px;">
             <span style="font-size:2rem;">{food_data.get('emoji','')}</span>
-            <span style="font-size:1.4rem;font-weight:700;color:#2C3E50;margin-left:10px;">{food_name}</span>
+            <span style="font-size:1.4rem;font-weight:700;color:#2C3E50;margin-left:10px;">{food_title}</span>
+            <span style="color:#5a6e8c;font-size:0.85rem;">{food_display}</span><br>
             <br>
             <span style="color:#5a6e8c;font-size:0.95rem;">{food_data.get('description','')}</span>
             &nbsp;&nbsp;<span style="background:#2176FF22;color:#2176FF;border-radius:6px;
@@ -912,7 +1003,7 @@ def show_food_analysis():
 
     gramos_key = f"gramos_alimento_{food_name}"
     gramos_input = st.number_input(
-        f"Gramos diarios de **{food_name}**",
+        f"Gramos diarios de **{get_food_short_name(food_name)}**",
         min_value=0.0,
         max_value=5000.0,
         value=float(st.session_state.get(gramos_key, 100.0)),
