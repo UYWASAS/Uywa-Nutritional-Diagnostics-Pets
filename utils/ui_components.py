@@ -734,7 +734,6 @@ def render_badge(text, tone="blue"):
         unsafe_allow_html=True,
     )
 
-
 def render_risk_card(risk, title, lines=None, text=None):
     cfg = RISK_CONFIG.get(risk, RISK_CONFIG["Bajo"])
     lines = lines or []
@@ -755,3 +754,153 @@ def render_risk_card(risk, title, lines=None, text=None):
         """,
         unsafe_allow_html=True,
     )
+def render_pet_identity_card(nombre, especie, etapa, especie_icon, foto_b64=None):
+    if foto_b64:
+        photo_html = f"""
+        <img src="data:image/png;base64,{foto_b64}" class="pet-photo-circle" alt="foto mascota"/>
+        """
+    else:
+        photo_html = f"""
+        <div class="pet-photo-placeholder">{especie_icon}</div>
+        """
+
+    st.markdown(
+        f"""
+        <div class="profile-left">
+            {photo_html}
+            <div class="pet-name">{nombre}</div>
+            <div style="font-size:13px; color:#718096; margin:2px 0;">
+                {especie.capitalize()}
+            </div>
+            <span class="stage-badge {etapa}">{etapa.capitalize()}</span>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_vital_card(title, value, icon="", color="#2563EB", extra_html=""):
+    st.markdown(
+        f"""
+        <div class="vital-card" style="border-left-color:{color};">
+            <span class="card-icon">{icon}</span>
+            <div class="card-label">{title}</div>
+            <div class="card-value">{value}</div>
+            {extra_html}
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_bcs_card(bcs, bcs_pct, bcs_color):
+    render_vital_card(
+        title="Condición Corporal (BCS)",
+        value=f"{bcs} / 9",
+        icon="📏",
+        color=bcs_color,
+        extra_html=f"""
+        <div class="bcs-bar-container">
+            <div class="bcs-bar-fill" style="width:{bcs_pct}%; background:{bcs_color};"></div>
+        </div>
+        """,
+    )
+
+
+def render_energy_kpi_grid(
+    energia_basal_actual,
+    mer_actual,
+    mer_final,
+    factor_fisiologico,
+    factor_condicion_val,
+    senior_aplicado,
+    fmt_func,
+):
+    senior_label = "×0.85 aplicado" if senior_aplicado else "No aplicado"
+
+    ec1, ec2, ec3, ec4 = st.columns(4)
+
+    with ec1:
+        render_kpi_card(
+            title="RER actual",
+            value=fmt_func(energia_basal_actual),
+            unit="kcal/día",
+            note="Energía en reposo",
+            tone="blue",
+        )
+
+    with ec2:
+        render_kpi_card(
+            title="MER fisiológico",
+            value=fmt_func(mer_actual),
+            unit="kcal/día",
+            note=f"Factor {factor_fisiologico}",
+            tone="green",
+        )
+
+    with ec3:
+        render_kpi_card(
+            title="MER ajustado final",
+            value=fmt_func(mer_final),
+            unit="kcal/día",
+            note="Después de BCS/senior",
+            tone="orange",
+        )
+
+    with ec4:
+        render_kpi_card(
+            title="Factor final",
+            value=factor_condicion_val,
+            unit="RER × factor",
+            note=f"Senior: {senior_label}",
+            tone="purple" if senior_aplicado else "gray",
+        )
+
+
+def render_profile_dashboard(
+    nombre,
+    especie,
+    etapa,
+    peso,
+    edad,
+    bcs,
+    estado_preview,
+    riesgo_preview,
+    mer_final,
+    senior_aplicado,
+    fmt_func,
+):
+    dash1, dash2, dash3 = st.columns(3)
+
+    with dash1:
+        render_kpi_card(
+            title="Paciente",
+            value=nombre,
+            unit=f"{especie.capitalize()} · {etapa.capitalize()}",
+            note=f"{fmt_func(peso)} kg · {fmt_func(edad)} años",
+            tone="blue",
+        )
+
+    with dash2:
+        risk_tone = {
+            "Bajo": "green",
+            "Moderado": "orange",
+            "Alto": "red",
+        }.get(riesgo_preview, "green")
+
+        render_kpi_card(
+            title="Estado corporal",
+            value=f"BCS {bcs}/9",
+            unit=estado_preview,
+            note=f"Riesgo {riesgo_preview}",
+            tone=risk_tone,
+        )
+
+    with dash3:
+        render_kpi_card(
+            title="Energía final",
+            value=f"{fmt_func(mer_final)}",
+            unit="kcal/día",
+            note=f"Senior: {'Sí' if senior_aplicado else 'No'}",
+            tone="orange",
+        )
