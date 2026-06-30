@@ -648,37 +648,86 @@ def get_food_card_fields(food_name: str) -> dict:
     }
 
 
-def render_food_selector_cards(alimentos: list[str], key_prefix: str = "food_card") -> str | None:
+def render_food_selector_cards(alimentos: list[str], key_prefix: str = "food_card", page_size: int = 6) -> str | None:
     """
-    Selector visual por tarjetas.
+    Selector visual por tarjetas con paginación.
     Retorna la clave real del alimento seleccionado.
     """
     if not alimentos:
         return None
 
-    current = st.session_state.get("analysis_food_selector_card", alimentos[0])
+    page_key = f"{key_prefix}_page"
+    selected_key = "analysis_food_selector_card"
+
+    total = len(alimentos)
+    total_pages = max(1, (total + page_size - 1) // page_size)
+
+    current_page = int(st.session_state.get(page_key, 0))
+    current_page = max(0, min(current_page, total_pages - 1))
+    st.session_state[page_key] = current_page
+
+    current = st.session_state.get(selected_key, alimentos[0])
 
     if current not in alimentos:
         current = alimentos[0]
-        st.session_state["analysis_food_selector_card"] = current
+        st.session_state[selected_key] = current
 
     st.markdown("#### Selecciona un alimento balanceado")
 
-    max_cards = min(len(alimentos), 12)
+    nav1, nav2, nav3 = st.columns([1, 2, 1])
 
-    if len(alimentos) > max_cards:
-        st.caption(f"Mostrando {max_cards} de {len(alimentos)} resultados. Refina la búsqueda para ver opciones más específicas.")
+    with nav1:
+        if st.button(
+            "◀ Anterior",
+            key=f"{key_prefix}_prev",
+            use_container_width=True,
+            disabled=current_page <= 0,
+        ):
+            st.session_state[page_key] = current_page - 1
+            st.rerun()
 
-    for row_start in range(0, max_cards, 3):
+    with nav2:
+        start_item = current_page * page_size + 1
+        end_item = min((current_page + 1) * page_size, total)
+        st.markdown(
+            f"""
+            <div style="text-align:center;color:#64748B;font-weight:700;padding-top:0.6rem;">
+                Mostrando {start_item}-{end_item} de {total} alimentos · Página {current_page + 1}/{total_pages}
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    with nav3:
+        if st.button(
+            "Siguiente ▶",
+            key=f"{key_prefix}_next",
+            use_container_width=True,
+            disabled=current_page >= total_pages - 1,
+        ):
+            st.session_state[page_key] = current_page + 1
+            st.rerun()
+
+    page_start = current_page * page_size
+    page_end = page_start + page_size
+    alimentos_pagina = alimentos[page_start:page_end]
+
+    for row_start in range(0, len(alimentos_pagina), 3):
         cols = st.columns(3)
 
-        for i, alimento in enumerate(alimentos[row_start:row_start + 3]):
+        for i, alimento in enumerate(alimentos_pagina[row_start:row_start + 3]):
             fields = get_food_card_fields(alimento)
             selected = alimento == current
 
             border = "#2563EB" if selected else "#E2E8F0"
             bg = "#EFF6FF" if selected else "#FFFFFF"
-            shadow = "0 12px 28px rgba(37,99,235,0.16)" if selected else "0 8px 22px rgba(15,23,42,0.06)"
+            shadow = (
+                "0 12px 28px rgba(37,99,235,0.16)"
+                if selected
+                else "0 8px 22px rgba(15,23,42,0.06)"
+            )
+
+            global_index = page_start + row_start + i
 
             with cols[i]:
                 st.markdown(
@@ -724,14 +773,14 @@ def render_food_selector_cards(alimentos: list[str], key_prefix: str = "food_car
 
                 if st.button(
                     "Seleccionar" if not selected else "Seleccionado",
-                    key=f"{key_prefix}_{row_start}_{i}",
+                    key=f"{key_prefix}_select_{global_index}",
                     use_container_width=True,
                     disabled=selected,
                 ):
-                    st.session_state["analysis_food_selector_card"] = alimento
+                    st.session_state[selected_key] = alimento
                     st.rerun()
 
-    return st.session_state.get("analysis_food_selector_card", current)
+    return st.session_state.get(selected_key, current)
 
 def get_food_search_text(food_name: str) -> str:
     """
@@ -878,6 +927,7 @@ def show_food_analysis():
     food_name = render_food_selector_cards(
         alimentos_filtrados,
         key_prefix="analysis_food_card",
+        page_size=6,
     )
     
     if not food_name:
