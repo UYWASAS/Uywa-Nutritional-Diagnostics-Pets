@@ -728,40 +728,23 @@ with tabs[0]:
     col_left, col_right = st.columns([3, 7])
 
     with col_left:
-        # Icono de especie
         especie_icon = "🐕" if especie == "perro" else "🐈"
+    
         nombre_display = st.session_state.get(
             "nombre_mascota",
             mascota.get("nombre", "Mascota")
         ) or "Mascota"
-
-        # Foto circular o placeholder
+    
         foto_bytes = st.session_state.get("mascota_foto_bytes")
-        if foto_bytes:
-            foto_b64 = base64.b64encode(foto_bytes).decode("utf-8")
-            st.markdown(
-                f"""
-                <div class="profile-left">
-                    <img src="data:image/png;base64,{foto_b64}" class="pet-photo-circle" alt="foto mascota"/>
-                    <div class="pet-name">{nombre_display}</div>
-                    <div style="font-size:32px; margin:4px 0;">{especie_icon}</div>
-                    <span class="stage-badge {etapa}">{etapa.capitalize()}</span>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-        else:
-            st.markdown(
-                f"""
-                <div class="profile-left">
-                    <div class="pet-photo-placeholder">{especie_icon}</div>
-                    <div class="pet-name">{nombre_display}</div>
-                    <div style="font-size:13px; color:#718096; margin:2px 0;">{especie.capitalize()}</div>
-                    <span class="stage-badge {etapa}">{etapa.capitalize()}</span>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
+        foto_b64 = base64.b64encode(foto_bytes).decode("utf-8") if foto_bytes else None
+    
+        render_pet_identity_card(
+            nombre=nombre_display,
+            especie=especie,
+            etapa=etapa,
+            especie_icon=especie_icon,
+            foto_b64=foto_b64,
+        )
 
     with col_right:
         # --- Datos Vitales en cards (2 por fila) ---
@@ -769,55 +752,51 @@ with tabs[0]:
         bcs_pct = int((bcs / 9) * 100)
         bcs_color = "#52b788" if 4 <= bcs <= 6 else ("#f4845f" if bcs > 6 else "#fbbf24")
 
+    with col_right:
+        edad_display = max(
+            0.0,
+            safe_float(
+                st.session_state.get("edad_mascota", mascota.get("edad", 1.0)),
+                1.0,
+            ),
+        )
+    
+        bcs_pct = int((bcs / 9) * 100)
+        bcs_color = "#52b788" if 4 <= bcs <= 6 else ("#f4845f" if bcs > 6 else "#fbbf24")
+    
         vc1, vc2 = st.columns(2)
+    
         with vc1:
-            st.markdown(
-                f"""
-                <div class="vital-card">
-                    <span class="card-icon">🎂</span>
-                    <div class="card-label">Edad</div>
-                    <div class="card-value">{fmt2(edad_display)} años</div>
-                </div>
-                """,
-                unsafe_allow_html=True,
+            render_vital_card(
+                title="Edad",
+                value=f"{fmt2(edad_display)} años",
+                icon="🎂",
+                color="#2563EB",
             )
+    
         with vc2:
-            st.markdown(
-                f"""
-                <div class="vital-card" style="border-left-color:#52b788;">
-                    <span class="card-icon">⚖️</span>
-                    <div class="card-label">Peso</div>
-                    <div class="card-value">{fmt2(peso)} kg</div>
-                </div>
-                """,
-                unsafe_allow_html=True,
+            render_vital_card(
+                title="Peso",
+                value=f"{fmt2(peso)} kg",
+                icon="⚖️",
+                color="#16A34A",
             )
-
+    
         vc3, vc4 = st.columns(2)
+    
         with vc3:
-            st.markdown(
-                f"""
-                <div class="vital-card" style="border-left-color:{bcs_color};">
-                    <span class="card-icon">📏</span>
-                    <div class="card-label">Condición Corporal (BCS)</div>
-                    <div class="card-value">{bcs} / 9</div>
-                    <div class="bcs-bar-container">
-                        <div class="bcs-bar-fill" style="width:{bcs_pct}%; background:{bcs_color};"></div>
-                    </div>
-                </div>
-                """,
-                unsafe_allow_html=True,
+            render_bcs_card(
+                bcs=bcs,
+                bcs_pct=bcs_pct,
+                bcs_color=bcs_color,
             )
+    
         with vc4:
-            st.markdown(
-                f"""
-                <div class="vital-card" style="border-left-color:#8e9aaf;">
-                    <span class="card-icon">🛠️</span>
-                    <div class="card-label">Condición Fisiológica</div>
-                    <div class="card-value" style="font-size:15px;">{condicion}</div>
-                </div>
-                """,
-                unsafe_allow_html=True,
+            render_vital_card(
+                title="Condición fisiológica",
+                value=condicion,
+                icon="🛠️",
+                color="#64748B",
             )
     # ===================== DASHBOARD EJECUTIVO DEL PERFIL =====================
     _estado_preview = get_estado_corporal(bcs)
@@ -825,40 +804,19 @@ with tabs[0]:
         bcs, edad, condicion, etapa, aplicar_ajuste_senior
     )
 
-    dash1, dash2, dash3 = st.columns(3)
-
-    with dash1:
-        render_kpi_card(
-            title="Paciente",
-            value=nombre_display,
-            unit=f"{especie.capitalize()} · {etapa.capitalize()}",
-            note=f"{fmt2(peso)} kg · {fmt2(edad)} años",
-            tone="blue",
-        )
-    
-    with dash2:
-        _risk_tone = {
-            "Bajo": "green",
-            "Moderado": "orange",
-            "Alto": "red",
-        }.get(_riesgo_preview, "green")
-    
-        render_kpi_card(
-            title="Estado corporal",
-            value=f"BCS {bcs}/9",
-            unit=_estado_preview,
-            note=f"Riesgo {_riesgo_preview}",
-            tone=_risk_tone,
-        )
-    
-    with dash3:
-        render_kpi_card(
-            title="Energía final",
-            value=f"{fmt2(mer_final)}",
-            unit="kcal/día",
-            note=f"Senior: {'Sí' if senior_aplicado else 'No'}",
-            tone="orange",
-        )
+    render_profile_dashboard(
+        nombre=nombre_display,
+        especie=especie,
+        etapa=etapa,
+        peso=peso,
+        edad=edad,
+        bcs=bcs,
+        estado_preview=_estado_preview,
+        riesgo_preview=_riesgo_preview,
+        mer_final=mer_final,
+        senior_aplicado=senior_aplicado,
+        fmt_func=fmt2,
+    )
         
     # ===================== DIAGNÓSTICO NUTRICIONAL INICIAL (ANCHO COMPLETO) =====================
     st.markdown("<hr class='section-divider'>", unsafe_allow_html=True)
@@ -905,43 +863,15 @@ with tabs[0]:
         subtitle="Resumen del requerimiento energético basal, fisiológico y ajustado del paciente.",
     )
 
-    ec1, ec2, ec3, ec4 = st.columns(4)
-
-    with ec1:
-        render_kpi_card(
-            title="RER actual",
-            value=fmt2(energia_basal_actual),
-            unit="kcal/día",
-            note="Energía en reposo",
-            tone="blue",
-        )
-    
-    with ec2:
-        render_kpi_card(
-            title="MER fisiológico",
-            value=fmt2(mer_actual),
-            unit="kcal/día",
-            note=f"Factor {factor_fisiologico}",
-            tone="green",
-        )
-    
-    with ec3:
-        render_kpi_card(
-            title="MER ajustado final",
-            value=fmt2(mer_final),
-            unit="kcal/día",
-            note="Después de BCS/senior",
-            tone="orange",
-        )
-    
-    with ec4:
-        render_kpi_card(
-            title="Factor final",
-            value=factor_condicion_val,
-            unit="RER × factor",
-            note=f"Senior: {'×0.85 aplicado' if senior_aplicado else 'No aplicado'}",
-            tone="purple" if senior_aplicado else "gray",
-        )
+    render_energy_kpi_grid(
+        energia_basal_actual=energia_basal_actual,
+        mer_actual=mer_actual,
+        mer_final=mer_final,
+        factor_fisiologico=factor_fisiologico,
+        factor_condicion_val=factor_condicion_val,
+        senior_aplicado=senior_aplicado,
+        fmt_func=fmt2,
+    )
 
     # Aviso cuando ajuste senior no se aplica por BCS ≠ 5
     if aplicar_ajuste_senior and not senior_aplicado and etapa == "adulto" and especie in ("perro", "gato"):
