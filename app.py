@@ -4,7 +4,12 @@ import datetime
 
 import pandas as pd
 import streamlit as st
-from utils.ui_components import inject_global_css
+from utils.ui_components import (
+    inject_global_css,
+    render_section_header,
+    render_kpi_card,
+    render_risk_card,
+)
 
 from utils.nutrient_reference import (
     NUTRIENTES_REFERENCIA_PERRO,
