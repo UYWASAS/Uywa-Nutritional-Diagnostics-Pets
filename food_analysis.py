@@ -614,6 +614,140 @@ def get_food_short_name(food_name: str) -> str:
 
     return food_name
 
+def normalize_life_stage_label(value: str) -> str:
+    text = str(value or "").strip()
+    text = text.replace("-", " · ")
+
+    replacements = {
+        "Adultos": "Adulto",
+        "Cachorro Razas": "Cachorro · Razas",
+        "Cachorro·Razas": "Cachorro · Razas",
+        "Adulto todas las razas": "Adulto · Todas las razas",
+        "Adultos Todas las razas": "Adulto · Todas las razas",
+    }
+
+    for old, new in replacements.items():
+        text = text.replace(old, new)
+
+    text = " · ".join([p.strip() for p in text.split("·") if p.strip()])
+    return text
+
+
+def get_food_card_fields(food_name: str) -> dict:
+    data = FOODS.get(food_name, {}) or {}
+
+    nombre = str(data.get("name", "") or "").strip()
+    marca = str(data.get("brand", "") or "").strip()
+    etapa = str(data.get("life_stage", "") or "").strip()
+    especie = str(data.get("species", "") or "").strip()
+    categoria = str(data.get("category", "") or "").strip()
+    emoji = str(data.get("emoji", "") or "").strip()
+
+    if not nombre:
+        partes = [p.strip() for p in str(food_name).split("|")]
+        if len(partes) >= 5:
+            nombre = partes[1]
+            marca = partes[2]
+            especie = partes[3]
+            etapa = partes[4]
+        else:
+            nombre = food_name
+
+    return {
+        "key": food_name,
+        "nombre": nombre,
+        "marca": marca,
+        "etapa": normalize_life_stage_label(etapa),
+        "especie": especie.capitalize(),
+        "categoria": categoria,
+        "emoji": emoji,
+    }
+
+
+def render_food_selector_cards(alimentos: list[str], key_prefix: str = "food_card") -> str | None:
+    """
+    Selector visual por tarjetas.
+    Retorna la clave real del alimento seleccionado.
+    """
+    if not alimentos:
+        return None
+
+    current = st.session_state.get("analysis_food_selector_card", alimentos[0])
+
+    if current not in alimentos:
+        current = alimentos[0]
+        st.session_state["analysis_food_selector_card"] = current
+
+    st.markdown("#### Selecciona un alimento balanceado")
+
+    max_cards = min(len(alimentos), 12)
+
+    if len(alimentos) > max_cards:
+        st.caption(f"Mostrando {max_cards} de {len(alimentos)} resultados. Refina la búsqueda para ver opciones más específicas.")
+
+    for row_start in range(0, max_cards, 3):
+        cols = st.columns(3)
+
+        for i, alimento in enumerate(alimentos[row_start:row_start + 3]):
+            fields = get_food_card_fields(alimento)
+            selected = alimento == current
+
+            border = "#2563EB" if selected else "#E2E8F0"
+            bg = "#EFF6FF" if selected else "#FFFFFF"
+            shadow = "0 12px 28px rgba(37,99,235,0.16)" if selected else "0 8px 22px rgba(15,23,42,0.06)"
+
+            with cols[i]:
+                st.markdown(
+                    f"""
+                    <div style="
+                        background:{bg};
+                        border:2px solid {border};
+                        border-radius:18px;
+                        padding:16px 18px;
+                        min-height:150px;
+                        box-shadow:{shadow};
+                        margin-bottom:8px;">
+                        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                            <div style="font-size:1.8rem;">{fields['emoji'] or '🐾'}</div>
+                            <div>
+                                <div style="font-size:1.05rem;font-weight:850;color:#0F172A;line-height:1.15;">
+                                    {fields['nombre']}
+                                </div>
+                                <div style="font-size:0.86rem;color:#64748B;font-weight:700;">
+                                    {fields['marca']}
+                                </div>
+                            </div>
+                        </div>
+                        <div style="font-size:0.86rem;color:#1F2937;margin-top:8px;">
+                            {fields['etapa']}
+                        </div>
+                        <div style="margin-top:10px;">
+                            <span style="
+                                background:#F8FAFC;
+                                color:#475569;
+                                border:1px solid #E2E8F0;
+                                border-radius:999px;
+                                padding:4px 9px;
+                                font-size:0.75rem;
+                                font-weight:750;">
+                                {fields['especie']}
+                            </span>
+                        </div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+
+                if st.button(
+                    "Seleccionar" if not selected else "Seleccionado",
+                    key=f"{key_prefix}_{row_start}_{i}",
+                    use_container_width=True,
+                    disabled=selected,
+                ):
+                    st.session_state["analysis_food_selector_card"] = alimento
+                    st.rerun()
+
+    return st.session_state.get("analysis_food_selector_card", current)
 
 def get_food_search_text(food_name: str) -> str:
     """
@@ -757,13 +891,14 @@ def show_food_analysis():
             st.caption(f"...y {len(alimentos_disponibles) - 10} más")
         return
 
-    food_name = st.selectbox(
-        "Selecciona un alimento balanceado:",
+    food_name = render_food_selector_cards(
         alimentos_filtrados,
-        key="analysis_food_selector",
-        help="Elige el alimento que consume tu mascota",
-        format_func=get_food_display_name,
+        key_prefix="analysis_food_card",
     )
+    
+    if not food_name:
+        st.warning("Selecciona un alimento para continuar.")
+        return
 
     # Guardar en session_state para otras pestañas
     st.session_state["alimento_seleccionado"] = food_name
