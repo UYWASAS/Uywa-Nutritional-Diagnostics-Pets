@@ -508,62 +508,38 @@ def render_requirement_coverage_cards(
     gramos_ee,
 ):
     """
-    Renderiza tarjetas horizontales de cobertura para energía, proteína y grasa.
-    Evita que Streamlit interprete HTML indentado como bloque de código.
+    Renderiza tarjetas de cobertura usando componentes nativos de Streamlit.
+    Evita problemas de HTML interpretado como texto.
     """
 
     def _status(aporte, req):
         if req is None or req <= 0:
-            return {
-                "pct": None,
-                "label": "Sin referencia",
-                "color": "#64748B",
-                "bg": "#F8FAFC",
-            }
+            return None, "Sin referencia", "normal"
 
         pct = (aporte / req) * 100.0
 
         if pct < 90:
-            return {
-                "pct": pct,
-                "label": "Bajo",
-                "color": "#2563EB",
-                "bg": "#EFF6FF",
-            }
-
+            return pct, "Bajo", "normal"
         if pct <= 110:
-            return {
-                "pct": pct,
-                "label": "En rango",
-                "color": "#16A34A",
-                "bg": "#ECFDF5",
-            }
+            return pct, "En rango", "normal"
 
-        return {
-            "pct": pct,
-            "label": "Excedido",
-            "color": "#F97316",
-            "bg": "#FFF7ED",
-        }
+        return pct, "Excedido", "inverse"
 
     items = [
         {
-            "title": "Energía",
-            "icon": "⚡",
+            "title": "⚡ Energía",
             "req": mer_animal,
             "aporte": me_total_kcal,
             "unit": "kcal/día",
         },
         {
-            "title": "Proteína",
-            "icon": "🥩",
+            "title": "🥩 Proteína",
             "req": req_pb_g,
             "aporte": gramos_pb,
             "unit": "g/día",
         },
         {
-            "title": "Grasa",
-            "icon": "🧈",
+            "title": "🧈 Grasa",
             "req": req_ee_g,
             "aporte": gramos_ee,
             "unit": "g/día",
@@ -573,14 +549,7 @@ def render_requirement_coverage_cards(
     st.markdown("#### Cobertura de requerimientos")
 
     for item in items:
-        status = _status(item["aporte"], item["req"])
-
-        if status["pct"] is None:
-            pct_text = "—"
-            bar_width = 0
-        else:
-            pct_text = f"{status['pct']:.0f}%"
-            bar_width = min(status["pct"], 140)
+        pct, estado, delta_color = _status(item["aporte"], item["req"])
 
         req_text = (
             f"{item['req']:.1f} {item['unit']}"
@@ -590,40 +559,30 @@ def render_requirement_coverage_cards(
 
         aporte_text = f"{item['aporte']:.1f} {item['unit']}"
 
-        card_html = f"""
-        <div style="background:#FFFFFF;border:1px solid #E2E8F0;border-left:6px solid {status['color']};border-radius:18px;padding:16px 18px;margin-bottom:14px;box-shadow:0 8px 22px rgba(15,23,42,0.06);">
-            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
-                <div>
-                    <div style="font-size:0.82rem;color:#64748B;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;">
-                        {item['icon']} {item['title']}
-                    </div>
-                    <div style="font-size:0.92rem;color:#334155;margin-top:5px;">
-                        Requerimiento: <b>{req_text}</b> · Aporte: <b>{aporte_text}</b>
-                    </div>
-                </div>
-                <div style="background:{status['bg']};color:{status['color']};border:1px solid {status['color']};border-radius:999px;padding:6px 12px;font-size:0.85rem;font-weight:850;white-space:nowrap;">
-                    {status['label']} · {pct_text}
-                </div>
-            </div>
+        if pct is None:
+            value_text = "—"
+            progress_value = 0.0
+            delta_text = estado
+        else:
+            value_text = f"{pct:.0f}%"
+            progress_value = min(pct / 140.0, 1.0)
+            delta_text = f"{estado} · {pct - 100:+.0f}% vs req."
 
-            <div style="background:#E2E8F0;height:10px;border-radius:999px;overflow:hidden;margin-top:14px;">
-                <div style="width:{bar_width}%;max-width:100%;background:{status['color']};height:10px;border-radius:999px;"></div>
-            </div>
+        with st.container(border=True):
+            c1, c2 = st.columns([2.3, 1])
 
-            <div style="display:flex;justify-content:space-between;margin-top:6px;font-size:0.76rem;color:#64748B;font-weight:700;">
-                <span>0%</span>
-                <span>90%</span>
-                <span>100%</span>
-                <span>110%</span>
-                <span>140%+</span>
-            </div>
-        </div>
-        """
+            with c1:
+                st.markdown(f"**{item['title']}**")
+                st.caption(f"Requerimiento: **{req_text}** · Aporte: **{aporte_text}**")
+                st.progress(progress_value)
 
-        st.markdown(
-            textwrap.dedent(card_html).strip(),
-            unsafe_allow_html=True,
-        )
+            with c2:
+                st.metric(
+                    label="Cobertura",
+                    value=value_text,
+                    delta=delta_text,
+                    delta_color=delta_color,
+                )
 def normalize_species(value):
     value = str(value or "").strip().lower()
 
