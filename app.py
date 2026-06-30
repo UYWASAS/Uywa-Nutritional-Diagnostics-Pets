@@ -901,7 +901,6 @@ with tabs[0]:
         subtitle="Resumen del requerimiento energético basal, fisiológico y ajustado del paciente.",
     )
 
-    _senior_label = "×0.85 aplicado" if senior_aplicado else "No aplicado"
     ec1, ec2, ec3, ec4 = st.columns(4)
 
     with ec1:
@@ -936,7 +935,7 @@ with tabs[0]:
             title="Factor final",
             value=factor_condicion_val,
             unit="RER × factor",
-            note=f"Senior: {_senior_label}",
+            note=f"Senior: {'×0.85 aplicado' if senior_aplicado else 'No aplicado'}",
             tone="purple" if senior_aplicado else "gray",
         )
 
