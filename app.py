@@ -901,6 +901,7 @@ with tabs[0]:
         subtitle="Resumen del requerimiento energético basal, fisiológico y ajustado del paciente.",
     )
 
+    _senior_label = "×0.85 aplicado" if senior_aplicado else "No aplicado"
     ec1, ec2, ec3, ec4 = st.columns(4)
 
     with ec1:
