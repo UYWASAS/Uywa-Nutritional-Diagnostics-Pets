@@ -3,6 +3,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import pandas as pd
 import streamlit as st
+import textwrap
 
 from food_database import (
     FOODS,
@@ -508,6 +509,7 @@ def render_requirement_coverage_cards(
 ):
     """
     Renderiza tarjetas horizontales de cobertura para energía, proteína y grasa.
+    Evita que Streamlit interprete HTML indentado como bloque de código.
     """
 
     def _status(aporte, req):
@@ -522,17 +524,50 @@ def render_requirement_coverage_cards(
         pct = (aporte / req) * 100.0
 
         if pct < 90:
-            return {"pct": pct, "label": "Bajo", "color": "#2563EB", "bg": "#EFF6FF"}
+            return {
+                "pct": pct,
+                "label": "Bajo",
+                "color": "#2563EB",
+                "bg": "#EFF6FF",
+            }
 
         if pct <= 110:
-            return {"pct": pct, "label": "En rango", "color": "#16A34A", "bg": "#ECFDF5"}
+            return {
+                "pct": pct,
+                "label": "En rango",
+                "color": "#16A34A",
+                "bg": "#ECFDF5",
+            }
 
-        return {"pct": pct, "label": "Excedido", "color": "#F97316", "bg": "#FFF7ED"}
+        return {
+            "pct": pct,
+            "label": "Excedido",
+            "color": "#F97316",
+            "bg": "#FFF7ED",
+        }
 
     items = [
-        {"title": "Energía", "icon": "⚡", "req": mer_animal, "aporte": me_total_kcal, "unit": "kcal/día"},
-        {"title": "Proteína", "icon": "🥩", "req": req_pb_g, "aporte": gramos_pb, "unit": "g/día"},
-        {"title": "Grasa", "icon": "🧈", "req": req_ee_g, "aporte": gramos_ee, "unit": "g/día"},
+        {
+            "title": "Energía",
+            "icon": "⚡",
+            "req": mer_animal,
+            "aporte": me_total_kcal,
+            "unit": "kcal/día",
+        },
+        {
+            "title": "Proteína",
+            "icon": "🥩",
+            "req": req_pb_g,
+            "aporte": gramos_pb,
+            "unit": "g/día",
+        },
+        {
+            "title": "Grasa",
+            "icon": "🧈",
+            "req": req_ee_g,
+            "aporte": gramos_ee,
+            "unit": "g/día",
+        },
     ]
 
     st.markdown("#### Cobertura de requerimientos")
@@ -555,47 +590,38 @@ def render_requirement_coverage_cards(
 
         aporte_text = f"{item['aporte']:.1f} {item['unit']}"
 
-        st.markdown(
-            f"""
-            <div style="background:#FFFFFF;border:1px solid #E2E8F0;
-                        border-left:6px solid {status['color']};
-                        border-radius:18px;padding:16px 18px;margin-bottom:14px;
-                        box-shadow:0 8px 22px rgba(15,23,42,0.06);">
-                <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
-                    <div>
-                        <div style="font-size:0.82rem;color:#64748B;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;">
-                            {item['icon']} {item['title']}
-                        </div>
-                        <div style="font-size:0.92rem;color:#334155;margin-top:5px;">
-                            Requerimiento: <b>{req_text}</b> · Aporte: <b>{aporte_text}</b>
-                        </div>
+        card_html = f"""
+        <div style="background:#FFFFFF;border:1px solid #E2E8F0;border-left:6px solid {status['color']};border-radius:18px;padding:16px 18px;margin-bottom:14px;box-shadow:0 8px 22px rgba(15,23,42,0.06);">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
+                <div>
+                    <div style="font-size:0.82rem;color:#64748B;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;">
+                        {item['icon']} {item['title']}
                     </div>
-                    <div style="background:{status['bg']};color:{status['color']};
-                                border:1px solid {status['color']};border-radius:999px;
-                                padding:6px 12px;font-size:0.85rem;font-weight:850;
-                                white-space:nowrap;">
-                        {status['label']} · {pct_text}
+                    <div style="font-size:0.92rem;color:#334155;margin-top:5px;">
+                        Requerimiento: <b>{req_text}</b> · Aporte: <b>{aporte_text}</b>
                     </div>
                 </div>
-
-                <div style="background:#E2E8F0;height:10px;border-radius:999px;
-                            overflow:hidden;margin-top:14px;">
-                    <div style="width:{bar_width}%;max-width:100%;
-                                background:{status['color']};height:10px;
-                                border-radius:999px;">
-                    </div>
-                </div>
-
-                <div style="display:flex;justify-content:space-between;margin-top:6px;
-                            font-size:0.76rem;color:#64748B;font-weight:700;">
-                    <span>0%</span>
-                    <span>90%</span>
-                    <span>100%</span>
-                    <span>110%</span>
-                    <span>140%+</span>
+                <div style="background:{status['bg']};color:{status['color']};border:1px solid {status['color']};border-radius:999px;padding:6px 12px;font-size:0.85rem;font-weight:850;white-space:nowrap;">
+                    {status['label']} · {pct_text}
                 </div>
             </div>
-            """,
+
+            <div style="background:#E2E8F0;height:10px;border-radius:999px;overflow:hidden;margin-top:14px;">
+                <div style="width:{bar_width}%;max-width:100%;background:{status['color']};height:10px;border-radius:999px;"></div>
+            </div>
+
+            <div style="display:flex;justify-content:space-between;margin-top:6px;font-size:0.76rem;color:#64748B;font-weight:700;">
+                <span>0%</span>
+                <span>90%</span>
+                <span>100%</span>
+                <span>110%</span>
+                <span>140%+</span>
+            </div>
+        </div>
+        """
+
+        st.markdown(
+            textwrap.dedent(card_html).strip(),
             unsafe_allow_html=True,
         )
 def normalize_species(value):
