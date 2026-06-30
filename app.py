@@ -4,6 +4,7 @@ import datetime
 
 import pandas as pd
 import streamlit as st
+from utils.ui_components import inject_global_css
 
 from utils.nutrient_reference import (
     NUTRIENTES_REFERENCIA_PERRO,
@@ -239,92 +240,7 @@ st.set_page_config(
     layout="wide",
 )
 
-st.markdown(
-    """
-    <style>
-    html, body, .stApp, .block-container {
-        background: linear-gradient(120deg, #ffffff 0%, #eef4fc 100%) !important;
-        font-size: 18px !important;
-    }
-
-    .block-container {
-        padding: 2rem 4rem;
-        max-width: 1500px;
-    }
-
-    h1 {
-        font-size: 2.25rem !important;
-        font-weight: 800 !important;
-        color: #1f2d3d !important;
-    }
-
-    h2 {
-        font-size: 1.75rem !important;
-        font-weight: 750 !important;
-    }
-
-    h3 {
-        font-size: 1.35rem !important;
-        font-weight: 700 !important;
-    }
-
-    p, div, span, label {
-        font-size: 1.02rem;
-    }
-
-    section[data-testid="stSidebar"] {
-        background-color: #2C3E50 !important;
-        color: #fff !important;
-    }
-
-    section[data-testid="stSidebar"] * {
-        color: #fff !important;
-    }
-
-    .stButton > button {
-        background-color: #2176ff;
-        color: #fff !important;
-        border-radius: 10px;
-        border: none;
-        padding: 0.65rem 1.1rem !important;
-        font-size: 1rem !important;
-        font-weight: 650 !important;
-    }
-
-    .stButton > button:hover {
-        background-color: #1254d1;
-        color: #fff !important;
-        box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.20) !important;
-    }
-
-    .stMetric {
-        font-size: 1rem !important;
-    }
-
-    [data-testid="stMetricValue"] {
-        font-size: 1.65rem !important;
-        font-weight: 800 !important;
-    }
-
-    .stNumberInput, .stSelectbox, .stTextInput, .stTextArea {
-        background-color: #eef4fc !important;
-        border-radius: 6px;
-        border: 1px solid #d4e4fc !important;
-        padding: 0.35rem;
-    }
-
-    div[data-testid="stDataFrame"] {
-        font-size: 1rem !important;
-    }
-
-    footer {
-        visibility: hidden !important;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
-
+inject_global_css()
 
 # ======================== BLOQUE 3: SIDEBAR ========================
 
