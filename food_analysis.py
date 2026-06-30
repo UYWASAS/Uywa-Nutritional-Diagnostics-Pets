@@ -1437,17 +1437,17 @@ def show_food_analysis():
         st.markdown(html_aporte, unsafe_allow_html=True)
 
     def render_requirement_coverage_cards(
-    mer_animal,
-    me_total_kcal,
-    req_pb_g,
-    gramos_pb,
-    req_ee_g,
-    gramos_ee,
-):
-    """
-    Renderiza tarjetas horizontales de cobertura para energía, proteína y grasa.
-    Reemplaza el gráfico de barras verticales Requerimiento vs Aporte.
-    """
+        mer_animal,
+        me_total_kcal,
+        req_pb_g,
+        gramos_pb,
+        req_ee_g,
+        gramos_ee,
+    ):
+        """
+        Renderiza tarjetas horizontales de cobertura para energía, proteína y grasa.
+        Reemplaza el gráfico de barras verticales Requerimiento vs Aporte.
+        """
 
     def _status(aporte, req):
         if req is None or req <= 0:
