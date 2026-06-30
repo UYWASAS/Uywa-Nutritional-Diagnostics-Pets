@@ -7,8 +7,12 @@ import streamlit as st
 from utils.ui_components import (
     inject_global_css,
     render_section_header,
-    render_kpi_card,
     render_risk_card,
+    render_pet_identity_card,
+    render_vital_card,
+    render_bcs_card,
+    render_energy_kpi_grid,
+    render_profile_dashboard,
 )
 
 from utils.nutrient_reference import (
