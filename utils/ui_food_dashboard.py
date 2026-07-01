@@ -1,3 +1,4 @@
+
 """
 UI dashboard module for UYWA Nutrition.
 Version 2.0 - Base structure.
