@@ -14,10 +14,18 @@ from food_database import (
     infer_me_from_manufacturer_dog_10kg,
 )
 
+from utils.ui_theme import inject_uywa_theme
 from utils.ui_food_dashboard import (
     render_food_selector_cards,
     render_requirement_coverage_cards,
     render_technical_profile,
+    render_food_header,
+    render_food_composition_metrics,
+    render_ingredients_sources,
+)
+from utils.ui_food_charts import (
+    plot_macronutrients_donut,
+    plot_energy_sources_horizontal,
 )
 
 # ---- Paleta de colores corporativa ----
@@ -660,6 +668,8 @@ def show_food_analysis():
     """
     Renderiza la interfaz de análisis nutricional en el Tab de Análisis de Streamlit.
     """
+    inject_uywa_theme()
+
     st.markdown(
         """
         <style>
@@ -800,22 +810,11 @@ def show_food_analysis():
     food_display = get_food_display_name(food_name)
     
     # ---- Encabezado del alimento ----
-    st.markdown(
-        f"""
-        <div style="background:linear-gradient(90deg,#2176ff11,#eef4fc);
-                    border-left:5px solid #2176FF;border-radius:10px;padding:16px 20px;margin-bottom:16px;">
-            <span style="font-size:2rem;">{food_data.get('emoji','')}</span>
-            <span style="font-size:1.4rem;font-weight:700;color:#2C3E50;margin-left:10px;">{food_title}</span>
-            <span style="color:#5a6e8c;font-size:0.85rem;">{food_display}</span><br>
-            <br>
-            <span style="color:#5a6e8c;font-size:0.95rem;">{food_data.get('description','')}</span>
-            &nbsp;&nbsp;<span style="background:#2176FF22;color:#2176FF;border-radius:6px;
-                                     padding:2px 10px;font-size:0.85rem;font-weight:600;">
-                {food_data.get('category','')}
-            </span>
-        </div>
-        """,
-        unsafe_allow_html=True,
+    render_food_header(
+        food_name=food_name,
+        food_data=food_data,
+        short_name=food_title,
+        display_name=food_display,
     )
 
     # ---- Tabla de composición proximal (editable) ----
@@ -928,23 +927,11 @@ def show_food_analysis():
         else 0.0
     )
     # ---- Métricas de nutrientes proximales ----
-    st.markdown("#### 📊 Composición Proximal")
-
-    prox_col1, prox_col2 = st.columns(2)
-    with prox_col1:
-        st.metric("🥩 Proteína Bruta (PB)", f"{edited_food_data['PB']:.2f} %",
-                  help="PB: Proteína Bruta (base tal como está)")
-        st.metric("⚫ Cenizas", f"{edited_food_data['Ash']:.2f} %",
-                  help="Contenido de cenizas (minerales totales)")
-        st.metric("🌾 Fibra Cruda (FC)", f"{edited_food_data['FC']:.2f} %",
-                  help="Fibra Cruda (base tal como está)")
-    with prox_col2:
-        st.metric("🧈 Extracto Etéreo (EE)", f"{edited_food_data['EE']:.2f} %",
-                  help="EE: Grasa o Extracto Etéreo (base tal como está)")
-        st.metric("💧 Humedad", f"{edited_food_data['Humidity']:.2f} %",
-                  help="Contenido de humedad del alimento")
-        st.metric("🌽 Extracto No Nitrogenado (ENA)", f"{ENA:.2f} %",
-                  help="ENA calculado por diferencia: 100 − PB − EE − Ash − Humedad − FC")
+    render_food_composition_metrics(
+        food_data=edited_food_data,
+        ena=ENA,
+        me_kcal_100g=me_formula_kcal_100g,
+    )
 
     st.markdown("#### 📈 Valores Derivados")
 
@@ -1291,7 +1278,15 @@ def show_food_analysis():
  
     # ── Gráfico de composición (torta/donut) ──────────────────────────────────
     st.markdown("#### 📈 Composición del Alimento")
-    st.plotly_chart(plot_macronutrients_pie(food_name, edited_food_data), use_container_width=True)
+    st.plotly_chart(
+        plot_macronutrients_donut(
+            food_name=food_name,
+            food_data=edited_food_data,
+            ena=ENA,
+            short_name=food_title,
+        ),
+        use_container_width=True,
+    )
 
     # Gráfico comparativo mejorado (solo cuando MER disponible)
     if mer_animal and mer_animal > 0:
@@ -1320,74 +1315,10 @@ def show_food_analysis():
 
     with tec_col1:
         st.markdown("#### Origen de la energía metabolizable")
-    
-        energy_sources = pd.DataFrame([
-            {
-                "Fuente": "Proteína",
-                "kcal": bd_single["me_pb"],
-                "pct": bd_single["pct_pb"],
-                "color": "#DC2626",
-            },
-            {
-                "Fuente": "Grasa",
-                "kcal": bd_single["me_ee"],
-                "pct": bd_single["pct_ee"],
-                "color": "#F59E0B",
-            },
-            {
-                "Fuente": "Carbohidratos",
-                "kcal": bd_single["me_cho"],
-                "pct": bd_single["pct_cho"],
-                "color": "#2563EB",
-            },
-        ])
-    
-        fig_single_energy = go.Figure()
-    
-        fig_single_energy.add_trace(
-            go.Bar(
-                y=energy_sources["Fuente"],
-                x=energy_sources["kcal"],
-                orientation="h",
-                marker=dict(color=energy_sources["color"]),
-                text=[
-                    f"{row.kcal:.1f} kcal/100g · {row.pct:.1f}%"
-                    for row in energy_sources.itertuples()
-                ],
-                textposition="auto",
-                hovertemplate="<b>%{y}</b><br>%{x:.1f} kcal/100g<extra></extra>",
-            )
+        st.plotly_chart(
+            plot_energy_sources_horizontal(bd_single),
+            use_container_width=True,
         )
-    
-        fig_single_energy.update_layout(
-            title=dict(
-                text="Distribución energética estimada",
-                font=dict(size=17, family="Inter, Montserrat, sans-serif", color="#0F172A"),
-                x=0.02,
-                xanchor="left",
-            ),
-            height=340,
-            margin=dict(t=60, b=35, l=20, r=20),
-            xaxis_title="kcal/100 g",
-            yaxis_title="",
-            yaxis=dict(autorange="reversed"),
-            paper_bgcolor="rgba(0,0,0,0)",
-            plot_bgcolor="rgba(0,0,0,0)",
-            font=dict(family="Inter, Montserrat, sans-serif", color="#334155"),
-            showlegend=False,
-        )
-    
-        fig_single_energy.update_xaxes(
-            showgrid=True,
-            gridcolor="rgba(148,163,184,0.25)",
-            zeroline=False,
-        )
-    
-        fig_single_energy.update_yaxes(
-            showgrid=False,
-        )
-    
-        st.plotly_chart(fig_single_energy, use_container_width=True)
 
     with tec_col2:
         render_technical_profile(
@@ -1396,37 +1327,4 @@ def show_food_analysis():
             me_por_100g=me_por_100g,
         )
 
-    st.markdown("#### 🌱 Principales materias primas identificadas")
-
-    source_pb = edited_food_data.get("source_pb", "")
-    source_ee = edited_food_data.get("source_ee", "")
-    source_fc = edited_food_data.get("source_fc", "")
-    
-    col_pb, col_ee, col_fc = st.columns(3)
-    
-    with col_pb:
-        st.markdown("##### 🥩 Proteína")
-    
-        if source_pb:
-            for item in source_pb.split(";"):
-                st.markdown(f"• {item.strip()}")
-        else:
-            st.caption("No especificado")
-    
-    with col_ee:
-        st.markdown("##### 🧈 Grasa")
-    
-        if source_ee:
-            for item in source_ee.split(";"):
-                st.markdown(f"• {item.strip()}")
-        else:
-            st.caption("No especificado")
-    
-    with col_fc:
-        st.markdown("##### 🌾 Carbohidratos y fibra")
-    
-        if source_fc:
-            for item in source_fc.split(";"):
-                st.markdown(f"• {item.strip()}")
-        else:
-            st.caption("No especificado")
+    render_ingredients_sources(edited_food_data)
