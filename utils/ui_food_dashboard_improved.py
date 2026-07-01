@@ -1,5 +1,24 @@
+"""
+Componentes visuales para el dashboard de análisis de alimentos UYWA Pets.
+
+Este módulo no calcula energía ni requerimientos. Solo renderiza UI.
+"""
+
+from __future__ import annotations
+
 import streamlit as st
-import pandas as pd
+
+from utils.ui_theme import (
+    COLOR_BORDER,
+    COLOR_MUTED,
+    COLOR_PANEL,
+    COLOR_SOFT_BG,
+    COLOR_TEXT,
+    NUTRIENT_COLORS,
+    STATUS_BG,
+    STATUS_COLORS,
+    card_style,
+)
 
 
 def normalize_life_stage_label(value: str) -> str:
@@ -11,6 +30,8 @@ def normalize_life_stage_label(value: str) -> str:
         "Cachorro·Razas": "Cachorro · Razas",
         "Adulto todas las razas": "Adulto · Todas las razas",
         "Adultos Todas las razas": "Adulto · Todas las razas",
+        "Adultos para todas las razas": "Adulto · Todas las razas",
+        "Adultos-Todos los tamaños control de peso": "Adulto · Control de peso",
     }
 
     for old, new in replacements.items():
@@ -48,6 +69,46 @@ def get_food_card_fields(food_name: str, foods: dict) -> dict:
         "categoria": categoria,
         "emoji": emoji,
     }
+
+
+def _render_badge(text: str, color: str = "#2563EB", bg: str = "#EFF6FF") -> str:
+    return (
+        f"<span style='background:{bg};color:{color};border:1px solid {color}33;"
+        "border-radius:999px;padding:4px 9px;font-size:0.75rem;font-weight:750;'>"
+        f"{text}</span>"
+    )
+
+
+def render_food_header(food_name: str, food_data: dict, food_title: str, food_display: str):
+    """Encabezado visual del alimento seleccionado."""
+    emoji = food_data.get("emoji", "🐾")
+    description = food_data.get("description", "")
+    category = food_data.get("category", "")
+
+    category_badge = _render_badge(category, "#2563EB", "#EFF6FF") if category else ""
+
+    st.markdown(
+        f"""
+        <div style="{card_style(border_color='#BFDBFE', background='#FFFFFF', radius=20, padding='18px 22px')} border-left:6px solid #2563EB;">
+            <div style="display:flex;align-items:center;gap:14px;">
+                <div style="font-size:2.2rem;">{emoji}</div>
+                <div style="flex:1;">
+                    <div style="font-size:1.35rem;font-weight:900;color:{COLOR_TEXT};line-height:1.15;">
+                        {food_title}
+                    </div>
+                    <div style="font-size:0.86rem;color:{COLOR_MUTED};font-weight:650;margin-top:3px;">
+                        {food_display}
+                    </div>
+                </div>
+                <div>{category_badge}</div>
+            </div>
+            <div style="font-size:0.92rem;color:{COLOR_MUTED};margin-top:12px;line-height:1.4;">
+                {description}
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
 def render_food_selector_cards(
@@ -98,7 +159,7 @@ def render_food_selector_cards(
         end_item = min((current_page + 1) * page_size, total)
         st.markdown(
             f"""
-            <div style="text-align:center;color:#64748B;font-weight:700;padding-top:0.6rem;">
+            <div style="text-align:center;color:{COLOR_MUTED};font-weight:800;padding-top:0.62rem;">
                 Mostrando {start_item}-{end_item} de {total} alimentos · Página {current_page + 1}/{total_pages}
             </div>
             """,
@@ -126,8 +187,8 @@ def render_food_selector_cards(
             fields = get_food_card_fields(alimento, foods)
             selected = alimento == current
 
-            border = "#2563EB" if selected else "#E2E8F0"
-            bg = "#EFF6FF" if selected else "#FFFFFF"
+            border = "#2563EB" if selected else COLOR_BORDER
+            bg = "#EFF6FF" if selected else COLOR_PANEL
             shadow = (
                 "0 12px 28px rgba(37,99,235,0.16)"
                 if selected
@@ -142,36 +203,27 @@ def render_food_selector_cards(
                     <div style="
                         background:{bg};
                         border:2px solid {border};
-                        border-radius:18px;
+                        border-radius:20px;
                         padding:16px 18px;
-                        min-height:150px;
+                        min-height:158px;
                         box-shadow:{shadow};
                         margin-bottom:8px;">
                         <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
-                            <div style="font-size:1.8rem;">{fields['emoji'] or '🐾'}</div>
+                            <div style="font-size:1.9rem;">{fields['emoji'] or '🐾'}</div>
                             <div>
-                                <div style="font-size:1.05rem;font-weight:850;color:#0F172A;line-height:1.15;">
+                                <div style="font-size:1.05rem;font-weight:900;color:{COLOR_TEXT};line-height:1.15;">
                                     {fields['nombre']}
                                 </div>
-                                <div style="font-size:0.86rem;color:#64748B;font-weight:700;">
+                                <div style="font-size:0.86rem;color:{COLOR_MUTED};font-weight:750;">
                                     {fields['marca']}
                                 </div>
                             </div>
                         </div>
-                        <div style="font-size:0.86rem;color:#1F2937;margin-top:8px;">
+                        <div style="font-size:0.86rem;color:#1F2937;margin-top:8px;min-height:34px;">
                             {fields['etapa']}
                         </div>
                         <div style="margin-top:10px;">
-                            <span style="
-                                background:#F8FAFC;
-                                color:#475569;
-                                border:1px solid #E2E8F0;
-                                border-radius:999px;
-                                padding:4px 9px;
-                                font-size:0.75rem;
-                                font-weight:750;">
-                                {fields['especie']}
-                            </span>
+                            {_render_badge(fields['especie'], '#475569', COLOR_SOFT_BG)}
                         </div>
                     </div>
                     """,
@@ -190,6 +242,20 @@ def render_food_selector_cards(
     return st.session_state.get(selected_key, current)
 
 
+def _coverage_status(aporte, req):
+    if req is None or req <= 0:
+        return None, "Sin referencia", "neutral"
+
+    pct = (aporte / req) * 100.0
+
+    if pct < 90:
+        return pct, "Bajo", "low"
+    if pct <= 110:
+        return pct, "En rango", "ok"
+
+    return pct, "Excedido", "high"
+
+
 def render_requirement_coverage_cards(
     mer_animal,
     me_total_kcal,
@@ -201,65 +267,39 @@ def render_requirement_coverage_cards(
     """
     Tarjetas de cobertura de requerimientos usando componentes nativos de Streamlit.
     """
-
-    def _status(aporte, req):
-        if req is None or req <= 0:
-            return None, "Sin referencia", "normal"
-
-        pct = (aporte / req) * 100.0
-
-        if pct < 90:
-            return pct, "Bajo", "normal"
-        if pct <= 110:
-            return pct, "En rango", "normal"
-
-        return pct, "Excedido", "inverse"
-
     items = [
-        {
-            "title": "⚡ Energía",
-            "req": mer_animal,
-            "aporte": me_total_kcal,
-            "unit": "kcal/día",
-        },
-        {
-            "title": "🥩 Proteína",
-            "req": req_pb_g,
-            "aporte": gramos_pb,
-            "unit": "g/día",
-        },
-        {
-            "title": "🧈 Grasa",
-            "req": req_ee_g,
-            "aporte": gramos_ee,
-            "unit": "g/día",
-        },
+        {"title": "⚡ Energía", "req": mer_animal, "aporte": me_total_kcal, "unit": "kcal/día"},
+        {"title": "🥩 Proteína", "req": req_pb_g, "aporte": gramos_pb, "unit": "g/día"},
+        {"title": "🧈 Grasa", "req": req_ee_g, "aporte": gramos_ee, "unit": "g/día"},
     ]
 
     st.markdown("#### Cobertura de requerimientos")
 
     for item in items:
-        pct, estado, delta_color = _status(item["aporte"], item["req"])
+        pct, estado, status = _coverage_status(item["aporte"], item["req"])
+        color = STATUS_COLORS[status]
+        bg = STATUS_BG[status]
 
         req_text = (
             f"{item['req']:.1f} {item['unit']}"
             if item["req"] is not None and item["req"] > 0
             else "Sin referencia"
         )
-
         aporte_text = f"{item['aporte']:.1f} {item['unit']}"
 
         if pct is None:
             value_text = "—"
             progress_value = 0.0
             delta_text = estado
+            delta_color = "normal"
         else:
             value_text = f"{pct:.0f}%"
             progress_value = min(pct / 140.0, 1.0)
             delta_text = f"{estado} · {pct - 100:+.0f}% vs req."
+            delta_color = "inverse" if status == "high" else "normal"
 
         with st.container(border=True):
-            c1, c2 = st.columns([2.3, 1])
+            c1, c2 = st.columns([2.4, 1])
 
             with c1:
                 st.markdown(f"**{item['title']}**")
@@ -267,12 +307,40 @@ def render_requirement_coverage_cards(
                 st.progress(progress_value)
 
             with c2:
+                st.markdown(
+                    f"<div style='background:{bg};border:1px solid {color}33;border-radius:16px;padding:4px 8px;'>",
+                    unsafe_allow_html=True,
+                )
                 st.metric(
                     label="Cobertura",
                     value=value_text,
                     delta=delta_text,
                     delta_color=delta_color,
                 )
+                st.markdown("</div>", unsafe_allow_html=True)
+
+
+def render_composition_metrics(edited_food_data: dict, ena: float, energy: dict):
+    """Métricas de composición proximal y valores derivados."""
+    st.markdown("#### 📊 Composición proximal")
+
+    prox_col1, prox_col2 = st.columns(2)
+    with prox_col1:
+        st.metric("🥩 Proteína Bruta (PB)", f"{edited_food_data['PB']:.2f} %")
+        st.metric("⚫ Cenizas", f"{edited_food_data['Ash']:.2f} %")
+        st.metric("🌾 Fibra Cruda (FC)", f"{edited_food_data['FC']:.2f} %")
+    with prox_col2:
+        st.metric("🧈 Extracto Etéreo (EE)", f"{edited_food_data['EE']:.2f} %")
+        st.metric("💧 Humedad", f"{edited_food_data['Humidity']:.2f} %")
+        st.metric("🌽 Extracto No Nitrogenado (ENA)", f"{ena:.2f} %")
+
+    st.markdown("#### 📈 Valores derivados")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        st.metric("🔬 Materia Seca (MS)", f"{energy['MS']:.1f} %")
+    with col2:
+        st.metric("📐 FC en base MS", f"{energy['FC_MS']:.2f} %")
 
 
 def render_technical_profile(
@@ -347,3 +415,38 @@ def render_technical_profile(
         st.metric("Grasa EE", f"{ee_pct:.1f}%")
         st.metric("ENA", f"{ena_pct:.1f}%")
         st.metric("Humedad", f"{humidity_pct:.1f}%")
+
+
+def render_ingredient_sources(edited_food_data: dict):
+    """Fuentes principales de proteína, grasa y carbohidratos/fibra."""
+    st.markdown("#### 🌱 Principales materias primas identificadas")
+
+    source_pb = edited_food_data.get("source_pb", "")
+    source_ee = edited_food_data.get("source_ee", "")
+    source_fc = edited_food_data.get("source_fc", "")
+
+    col_pb, col_ee, col_fc = st.columns(3)
+
+    with col_pb:
+        st.markdown("##### 🥩 Proteína")
+        if source_pb:
+            for item in source_pb.split(";"):
+                st.markdown(f"• {item.strip()}")
+        else:
+            st.caption("No especificado")
+
+    with col_ee:
+        st.markdown("##### 🧈 Grasa")
+        if source_ee:
+            for item in source_ee.split(";"):
+                st.markdown(f"• {item.strip()}")
+        else:
+            st.caption("No especificado")
+
+    with col_fc:
+        st.markdown("##### 🌾 Carbohidratos y fibra")
+        if source_fc:
+            for item in source_fc.split(";"):
+                st.markdown(f"• {item.strip()}")
+        else:
+            st.caption("No especificado")
