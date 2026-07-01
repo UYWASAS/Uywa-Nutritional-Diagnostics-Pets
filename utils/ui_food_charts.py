@@ -94,7 +94,16 @@ def plot_compare_radar(df: pd.DataFrame, title: str = "Radar nutricional compara
     metrics = ["PB (%)", "EE (%)", "FC (%)", "ENA (%)", "ME (kcal/100g)"]
     fig = go.Figure()
 
-    for _, row in df.iterrows():
+    RADAR_COLORS = [
+        "#2563EB",  # azul
+        "#DC2626",  # rojo
+        "#16A34A",  # verde
+        "#F59E0B",  # ámbar
+        "#7C3AED",  # morado
+        "#0891B2",  # cian oscuro
+    ]
+    for idx, (_, row) in enumerate(df.iterrows()):
+        color = RADAR_COLORS[idx % len(RADAR_COLORS)]
         values = []
         for m in metrics:
             max_val = df[m].max() if m in df and df[m].max() else 1
@@ -107,7 +116,9 @@ def plot_compare_radar(df: pd.DataFrame, title: str = "Radar nutricional compara
                 theta=metrics + [metrics[0]],
                 fill="toself",
                 name=str(row.get("Alimento corto", row.get("Alimento", "Alimento"))),
-                opacity=0.65,
+                line=dict(color=color, width=3),
+                marker=dict(color=color, size=6),
+                opacity=0.55,
             )
         )
 
