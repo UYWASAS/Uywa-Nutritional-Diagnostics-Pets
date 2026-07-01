@@ -1649,7 +1649,7 @@ def show_food_analysis():
     
         st.plotly_chart(fig_single_energy, use_container_width=True)
 
-   with tec_col2:
+    with tec_col2:
         st.markdown("#### Lectura rápida")
     
         pb_pct = float(edited_food_data.get("PB", 0))
