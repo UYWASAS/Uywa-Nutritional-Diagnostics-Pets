@@ -3,11 +3,11 @@
 UYWA Food Compare
 Comparador nutricional limpio para pestaña Comparador.
 
-Versión corregida:
+Versión release:
 - nombres visibles únicos;
 - selector con nombre completo;
-- cards y gráficos con nombres cortos pero diferenciables;
-- evita que alimentos distintos parezcan duplicados.
+- cards y gráficos con nombres cortos diferenciables;
+- sin auditoría de depuración visible para el usuario.
 """
 
 from __future__ import annotations
@@ -221,18 +221,42 @@ def render_compare_summary_cards(df: pd.DataFrame, mer: float) -> None:
     cols = st.columns(4 if mer and mer > 0 else 3)
 
     with cols[0]:
-        render_kpi_card("Mayor energía", best_me["Alimento corto"], f"{best_me['ME (kcal/100g)']:.1f} kcal/100g", tone="energy", icon="⚡")
+        render_kpi_card(
+            "Mayor energía",
+            best_me["Alimento corto"],
+            f"{best_me['ME (kcal/100g)']:.1f} kcal/100g",
+            tone="energy",
+            icon="⚡",
+        )
 
     with cols[1]:
-        render_kpi_card("Mayor proteína", best_pb["Alimento corto"], f"{best_pb['PB (%)']:.1f}% PB", tone="protein", icon="🥩")
+        render_kpi_card(
+            "Mayor proteína",
+            best_pb["Alimento corto"],
+            f"{best_pb['PB (%)']:.1f}% PB",
+            tone="protein",
+            icon="🥩",
+        )
 
     with cols[2]:
-        render_kpi_card("Menor ENA", low_ena["Alimento corto"], f"{low_ena['ENA (%)']:.1f}% ENA", tone="carb", icon="🌽")
+        render_kpi_card(
+            "Menor ENA",
+            low_ena["Alimento corto"],
+            f"{low_ena['ENA (%)']:.1f}% ENA",
+            tone="carb",
+            icon="🌽",
+        )
 
     if mer and mer > 0 and df["Cobertura energética (%)"].notna().any():
         best_cov = df.sort_values("Cobertura energética (%)", ascending=False).iloc[0]
         with cols[3]:
-            render_kpi_card("Mayor cobertura", best_cov["Alimento corto"], f"{best_cov['Cobertura energética (%)']:.1f}% MER", tone="success", icon="🎯")
+            render_kpi_card(
+                "Mayor cobertura",
+                best_cov["Alimento corto"],
+                f"{best_cov['Cobertura energética (%)']:.1f}% MER",
+                tone="success",
+                icon="🎯",
+            )
 
 
 def render_compare_food_cards(df: pd.DataFrame) -> None:
@@ -259,10 +283,7 @@ def render_compare_food_cards(df: pd.DataFrame) -> None:
 
                     with m2:
                         cobertura = row.get("Cobertura energética (%)")
-                        if pd.notna(cobertura):
-                            st.metric("Cobertura", f"{cobertura:.1f}%")
-                        else:
-                            st.metric("Cobertura", "—")
+                        st.metric("Cobertura", f"{cobertura:.1f}%" if pd.notna(cobertura) else "—")
 
                     st.markdown(
                         f"""
@@ -348,49 +369,6 @@ def render_compare_table(df: pd.DataFrame) -> None:
     )
 
 
-def render_duplicate_audit(available_foods: list[str], foods: dict) -> None:
-    labels = build_unique_labels(available_foods, foods)
-    audit_rows = []
-
-    for food_name in available_foods:
-        data = foods.get(food_name, {}) or {}
-        ident = get_food_identity(food_name, data)
-        audit_rows.append(
-            {
-                "Clave": food_name,
-                "ID": ident["id"],
-                "Nombre": ident["name"],
-                "Marca": ident["brand"],
-                "Especie": ident["species"],
-                "Etapa": ident["life_stage"],
-                "Etiqueta corta": labels[food_name]["short"],
-                "Etiqueta completa": labels[food_name]["full"],
-            }
-        )
-
-    audit_df = pd.DataFrame(audit_rows)
-
-    apparent_duplicates = (
-        audit_df.groupby(["Nombre", "Marca"])
-        .size()
-        .reset_index(name="N")
-        .query("N > 1")
-        .sort_values("N", ascending=False)
-    )
-
-    with st.expander("Auditoría de nombres y duplicados aparentes", expanded=False):
-        if apparent_duplicates.empty:
-            st.success("No se detectaron nombres aparentes repetidos por Nombre + Marca.")
-        else:
-            st.warning(
-                "Hay nombres aparentes repetidos por Nombre + Marca. "
-                "Esto no necesariamente implica duplicados reales; pueden corresponder a etapas o IDs distintos."
-            )
-            st.dataframe(apparent_duplicates, use_container_width=True, hide_index=True)
-
-        st.dataframe(audit_df, use_container_width=True, hide_index=True)
-
-
 def render_food_comparison_dashboard(
     foods: dict,
     available_foods: list[str],
@@ -439,3 +417,41 @@ def render_food_comparison_dashboard(
         step=10.0,
         key="comparador_gramos_avanzado_v2",
     )
+
+    if not selected_foods:
+        st.info("Selecciona al menos un alimento para iniciar la comparación.")
+        return
+
+    df = build_compare_dataframe(
+        selected_foods=selected_foods,
+        foods=foods,
+        calculate_energy_func=calculate_energy_func,
+        calculate_ena_func=calculate_ena_func,
+        calculate_energy_breakdown_func=calculate_energy_breakdown_func,
+        species=species,
+        mer=mer,
+        grams=grams,
+    )
+
+    render_compare_summary_cards(df, mer)
+
+    st.markdown("<hr class='uywa-divider'>", unsafe_allow_html=True)
+
+    g1, g2 = st.columns([1, 1])
+
+    with g1:
+        st.plotly_chart(plot_compare_energy_stacked(df), use_container_width=True)
+
+    with g2:
+        st.plotly_chart(plot_compare_energy_bullet(df, mer, grams), use_container_width=True)
+
+    st.plotly_chart(plot_compare_radar(df), use_container_width=True)
+
+    render_compare_food_cards(df)
+    render_compare_sources(df)
+    render_compare_table(df)
+
+    if mer and mer > 0:
+        st.success(f"Comparación ajustada al MER actual: {mer:.1f} kcal/día.")
+    else:
+        st.warning("No hay MER calculado. Completa el Perfil para estimar cobertura energética.")
