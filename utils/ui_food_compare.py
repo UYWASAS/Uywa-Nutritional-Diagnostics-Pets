@@ -439,3 +439,5 @@ def render_food_comparison_dashboard(
         step=10.0,
         key="comparador_gramos_avanzado_v2",
     )
+ )
+
