@@ -1579,37 +1579,74 @@ def show_food_analysis():
     tec_col1, tec_col2 = st.columns([1.2, 1])
 
     with tec_col1:
-        st.markdown("#### ⚡ Origen de la energía metabolizable")
-
+        st.markdown("#### Origen de la energía metabolizable")
+    
+        energy_sources = pd.DataFrame([
+            {
+                "Fuente": "Proteína",
+                "kcal": bd_single["me_pb"],
+                "pct": bd_single["pct_pb"],
+                "color": "#DC2626",
+            },
+            {
+                "Fuente": "Grasa",
+                "kcal": bd_single["me_ee"],
+                "pct": bd_single["pct_ee"],
+                "color": "#F59E0B",
+            },
+            {
+                "Fuente": "Carbohidratos",
+                "kcal": bd_single["me_cho"],
+                "pct": bd_single["pct_cho"],
+                "color": "#2563EB",
+            },
+        ])
+    
         fig_single_energy = go.Figure()
+    
         fig_single_energy.add_trace(
             go.Bar(
-                x=["Proteína", "Grasa", "Carbohidratos"],
-                y=[
-                    bd_single["me_pb"],
-                    bd_single["me_ee"],
-                    bd_single["me_cho"],
-                ],
+                y=energy_sources["Fuente"],
+                x=energy_sources["kcal"],
+                orientation="h",
+                marker=dict(color=energy_sources["color"]),
                 text=[
-                    f"{bd_single['pct_pb']:.1f}%",
-                    f"{bd_single['pct_ee']:.1f}%",
-                    f"{bd_single['pct_cho']:.1f}%",
+                    f"{row.kcal:.1f} kcal/100g · {row.pct:.1f}%"
+                    for row in energy_sources.itertuples()
                 ],
-                textposition="outside",
-                hovertemplate="<b>%{x}</b><br>%{y:.1f} kcal/100g<extra></extra>",
+                textposition="auto",
+                hovertemplate="<b>%{y}</b><br>%{x:.1f} kcal/100g<extra></extra>",
             )
         )
-
+    
         fig_single_energy.update_layout(
-            title="Distribución energética estimada",
-            xaxis_title="Fuente energética",
-            yaxis_title="kcal/100g",
-            height=380,
-            plot_bgcolor="rgba(0,0,0,0)",
+            title=dict(
+                text="Distribución energética estimada",
+                font=dict(size=17, family="Inter, Montserrat, sans-serif", color="#0F172A"),
+                x=0.02,
+                xanchor="left",
+            ),
+            height=340,
+            margin=dict(t=60, b=35, l=20, r=20),
+            xaxis_title="kcal/100 g",
+            yaxis_title="",
+            yaxis=dict(autorange="reversed"),
             paper_bgcolor="rgba(0,0,0,0)",
-            margin=dict(t=60, b=50, l=50, r=20),
+            plot_bgcolor="rgba(0,0,0,0)",
+            font=dict(family="Inter, Montserrat, sans-serif", color="#334155"),
+            showlegend=False,
         )
-
+    
+        fig_single_energy.update_xaxes(
+            showgrid=True,
+            gridcolor="rgba(148,163,184,0.25)",
+            zeroline=False,
+        )
+    
+        fig_single_energy.update_yaxes(
+            showgrid=False,
+        )
+    
         st.plotly_chart(fig_single_energy, use_container_width=True)
 
     with tec_col2:
