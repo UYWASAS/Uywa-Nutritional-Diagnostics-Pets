@@ -1,3 +1,7 @@
+
+import html
+import textwrap
+
 import streamlit as st
 
 
@@ -70,6 +74,15 @@ TONE_CONFIG = {
         "bg": UYWA_COLORS["gray_soft"],
     },
 }
+
+
+def _esc(value) -> str:
+    return html.escape(str(value or ""))
+
+
+def _html(raw_html: str) -> None:
+    """Render HTML de forma controlada para evitar que aparezca como texto."""
+    st.markdown(textwrap.dedent(raw_html).strip(), unsafe_allow_html=True)
 
 
 def inject_global_css():
@@ -280,19 +293,6 @@ def inject_global_css():
             line-height: 1.45;
         }
 
-        .uywa-card {
-            background: rgba(255,255,255,0.90);
-            border: 1px solid var(--uywa-border);
-            border-radius: 18px;
-            padding: 18px 20px;
-            box-shadow: 0 12px 30px rgba(15, 23, 42, 0.07);
-            min-height: 108px;
-        }
-
-        .uywa-card:hover {
-            box-shadow: 0 16px 38px rgba(15, 23, 42, 0.10);
-        }
-
         .uywa-kpi-card {
             position: relative;
             overflow: hidden;
@@ -344,18 +344,10 @@ def inject_global_css():
             z-index: 2;
         }
 
-        .uywa-kpi-unit {
+        .uywa-kpi-unit, .uywa-kpi-note {
             color: var(--uywa-muted);
             font-size: 0.86rem;
             margin-top: 4px;
-            position: relative;
-            z-index: 2;
-        }
-
-        .uywa-kpi-note {
-            color: var(--uywa-muted);
-            font-size: 0.82rem;
-            margin-top: 10px;
             position: relative;
             z-index: 2;
         }
@@ -368,9 +360,9 @@ def inject_global_css():
             border-radius: 999px;
             font-size: 0.78rem;
             font-weight: 800;
-            border: 1px solid var(--badge-color);
-            color: var(--badge-color);
-            background: var(--badge-bg);
+            border: 1px solid var(--badge-color, #E2E8F0);
+            color: var(--badge-color, #64748B);
+            background: var(--badge-bg, #F8FAFC);
         }
 
         .uywa-alert-card {
@@ -512,69 +504,6 @@ def inject_global_css():
             border-radius: 999px;
         }
 
-        .energy-card {
-            position: relative;
-            overflow: hidden;
-            background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
-            border-radius: 18px;
-            padding: 18px 20px;
-            margin-bottom: 14px;
-            box-shadow: 0 12px 30px rgba(37,99,235,0.24);
-            color: #fff;
-            min-height: 128px;
-        }
-
-        .energy-card::after {
-            content: "";
-            position: absolute;
-            right: -34px;
-            top: -34px;
-            width: 115px;
-            height: 115px;
-            border-radius: 999px;
-            background: rgba(255,255,255,0.14);
-        }
-
-        .energy-card .card-label {
-            font-size: 0.76rem;
-            color: rgba(255,255,255,0.82);
-            text-transform: uppercase;
-            letter-spacing: 0.07em;
-            font-weight: 850;
-            margin-bottom: 6px;
-            position: relative;
-            z-index: 2;
-        }
-
-        .energy-card .card-value {
-            font-size: 1.62rem;
-            font-weight: 850;
-            color: #fff;
-            letter-spacing: -0.03em;
-            position: relative;
-            z-index: 2;
-        }
-
-        .energy-card.green {
-            background: linear-gradient(135deg, #16A34A 0%, #15803D 100%);
-            box-shadow: 0 12px 30px rgba(22,163,74,0.23);
-        }
-
-        .energy-card.orange {
-            background: linear-gradient(135deg, #F97316 0%, #C2410C 100%);
-            box-shadow: 0 12px 30px rgba(249,115,22,0.24);
-        }
-
-        .energy-card.purple {
-            background: linear-gradient(135deg, #7C3AED 0%, #5B21B6 100%);
-            box-shadow: 0 12px 30px rgba(124,58,237,0.23);
-        }
-
-        .energy-card.purple-inactive {
-            background: linear-gradient(135deg, #94A3B8 0%, #64748B 100%);
-            box-shadow: 0 12px 30px rgba(100,116,139,0.20);
-        }
-
         .section-divider {
             border: none;
             border-top: 1px solid var(--uywa-border);
@@ -615,10 +544,6 @@ def inject_global_css():
             background-color: #F8FAFC;
         }
 
-        .energy-table tr:nth-child(odd), .nutrients-table tr:nth-child(odd) {
-            background-color: #FFFFFF;
-        }
-
         .diagnostic-card {
             border-radius: 18px;
             padding: 22px 24px;
@@ -646,31 +571,6 @@ def inject_global_css():
             color: #7F1D1D;
         }
 
-        .diagnostic-title {
-            font-size: 1.12rem;
-            font-weight: 850;
-            margin-bottom: 8px;
-        }
-
-        .diagnostic-state {
-            font-size: 0.95rem;
-            margin-bottom: 6px;
-            opacity: 0.95;
-        }
-
-        .diagnostic-priority {
-            font-size: 0.95rem;
-            font-weight: 750;
-            margin-top: 8px;
-        }
-
-        .diagnostic-text {
-            font-size: 0.95rem;
-            line-height: 1.55;
-            margin-top: 16px;
-            opacity: 0.96;
-        }
-
         @media (max-width: 900px) {
             .block-container {
                 padding: 1.2rem 1.2rem 2rem 1.2rem;
@@ -678,10 +578,6 @@ def inject_global_css():
 
             h1 {
                 font-size: 1.75rem !important;
-            }
-
-            .uywa-kpi-value {
-                font-size: 1.35rem;
             }
         }
         </style>
@@ -691,105 +587,105 @@ def inject_global_css():
 
 
 def render_section_header(title, subtitle=None, kicker=None):
-    kicker_html = f"<div class='uywa-section-kicker'>{kicker}</div>" if kicker else ""
-    subtitle_html = f"<div class='uywa-section-subtitle'>{subtitle}</div>" if subtitle else ""
+    kicker_html = f"<div class='uywa-section-kicker'>{_esc(kicker)}</div>" if kicker else ""
+    subtitle_html = f"<div class='uywa-section-subtitle'>{_esc(subtitle)}</div>" if subtitle else ""
 
-    st.markdown(
+    _html(
         f"""
         <div class="uywa-section-header">
             {kicker_html}
-            <div class="uywa-section-title">{title}</div>
+            <div class="uywa-section-title">{_esc(title)}</div>
             {subtitle_html}
         </div>
-        """,
-        unsafe_allow_html=True,
+        """
     )
 
 
 def render_kpi_card(title, value, unit="", note="", tone="blue"):
     cfg = TONE_CONFIG.get(tone, TONE_CONFIG["blue"])
 
-    st.markdown(
+    _html(
         f"""
         <div class="uywa-kpi-card" style="--accent-color:{cfg['color']}; --accent-bg:{cfg['bg']};">
-            <div class="uywa-kpi-label">{title}</div>
-            <div class="uywa-kpi-value">{value}</div>
-            <div class="uywa-kpi-unit">{unit}</div>
-            <div class="uywa-kpi-note">{note}</div>
+            <div class="uywa-kpi-label">{_esc(title)}</div>
+            <div class="uywa-kpi-value">{_esc(value)}</div>
+            <div class="uywa-kpi-unit">{_esc(unit)}</div>
+            <div class="uywa-kpi-note">{_esc(note)}</div>
         </div>
-        """,
-        unsafe_allow_html=True,
+        """
     )
 
 
 def render_badge(text, tone="blue"):
     cfg = TONE_CONFIG.get(tone, TONE_CONFIG["blue"])
 
-    st.markdown(
+    _html(
         f"""
         <span class="uywa-badge" style="--badge-color:{cfg['color']}; --badge-bg:{cfg['bg']};">
-            {text}
+            {_esc(text)}
         </span>
-        """,
-        unsafe_allow_html=True,
+        """
     )
+
 
 def render_risk_card(risk, title, lines=None, text=None):
     cfg = RISK_CONFIG.get(risk, RISK_CONFIG["Bajo"])
     lines = lines or []
 
-    lines_html = ""
-    for line in lines:
-        lines_html += f"<div class='uywa-alert-line'>{line}</div>"
+    lines_html = "".join(f"<div class='uywa-alert-line'>{_esc(line)}</div>" for line in lines)
+    text_html = f"<div class='uywa-alert-text'>{_esc(text)}</div>" if text else ""
 
-    text_html = f"<div class='uywa-alert-text'>{text}</div>" if text else ""
-
-    st.markdown(
+    _html(
         f"""
         <div class="uywa-alert-card" style="--alert-color:{cfg['color']}; --alert-bg:{cfg['bg']};">
-            <div class="uywa-alert-title">{cfg['icon']} {title}</div>
+            <div class="uywa-alert-title">{cfg['icon']} {_esc(title)}</div>
             {lines_html}
             {text_html}
         </div>
-        """,
-        unsafe_allow_html=True,
+        """
     )
-def render_pet_identity_card(nombre, especie, etapa, especie_icon, foto_b64=None):
-    if foto_b64:
-        photo_html = f"""
-        <img src="data:image/png;base64,{foto_b64}" class="pet-photo-circle" alt="foto mascota"/>
-        """
-    else:
-        photo_html = f"""
-        <div class="pet-photo-placeholder">{especie_icon}</div>
-        """
 
-    st.markdown(
+
+def render_pet_identity_card(nombre, especie, etapa, especie_icon, foto_b64=None):
+    """
+    Tarjeta visual del paciente.
+    Esta versión evita que el HTML interno se muestre como texto.
+    """
+    nombre = _esc(nombre or "Mascota")
+    especie = _esc(str(especie or "").capitalize())
+    etapa_raw = str(etapa or "").lower()
+    etapa_label = _esc(etapa_raw.capitalize())
+    etapa_class = "cachorro" if etapa_raw == "cachorro" else "adulto"
+
+    if foto_b64:
+        photo_html = f'<img src="data:image/png;base64,{foto_b64}" class="pet-photo-circle" alt="foto mascota"/>'
+    else:
+        photo_html = f'<div class="pet-photo-placeholder">{_esc(especie_icon)}</div>'
+
+    _html(
         f"""
         <div class="profile-left">
             {photo_html}
             <div class="pet-name">{nombre}</div>
             <div style="font-size:13px; color:#718096; margin:2px 0;">
-                {especie.capitalize()}
+                {especie}
             </div>
-            <span class="stage-badge {etapa}">{etapa.capitalize()}</span>
+            <span class="stage-badge {etapa_class}">{etapa_label}</span>
         </div>
-        """,
-        unsafe_allow_html=True,
+        """
     )
 
 
 def render_vital_card(title, value, icon="", color="#2563EB", extra_html=""):
-    st.markdown(
+    _html(
         f"""
         <div class="vital-card" style="border-left-color:{color};">
-            <span class="card-icon">{icon}</span>
-            <div class="card-label">{title}</div>
-            <div class="card-value">{value}</div>
+            <span class="card-icon">{_esc(icon)}</span>
+            <div class="card-label">{_esc(title)}</div>
+            <div class="card-value">{_esc(value)}</div>
             {extra_html}
         </div>
-        """,
-        unsafe_allow_html=True,
+        """
     )
 
 
@@ -876,7 +772,7 @@ def render_profile_dashboard(
         render_kpi_card(
             title="Paciente",
             value=nombre,
-            unit=f"{especie.capitalize()} · {etapa.capitalize()}",
+            unit=f"{str(especie).capitalize()} · {str(etapa).capitalize()}",
             note=f"{fmt_func(peso)} kg · {fmt_func(edad)} años",
             tone="blue",
         )
