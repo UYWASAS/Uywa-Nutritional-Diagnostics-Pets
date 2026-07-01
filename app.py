@@ -27,10 +27,10 @@ from auth import authenticate_user
 from food_analysis import (
     show_food_analysis,
     get_foods_by_species,
-    plot_energy_breakdown_stacked_with_edits,
-    build_energy_breakdown_table_with_edits,
-    show_energy_breakdown_cards,
 )
+
+from utils.ui_theme import inject_uywa_theme
+from utils.ui_food_compare import render_food_comparison_dashboard
 from food_database import (
     FOODS,
     calculate_energy as calc_energy_food,
@@ -250,6 +250,7 @@ st.set_page_config(
 )
 
 inject_global_css()
+inject_uywa_theme()
 
 # ======================== BLOQUE 3: SIDEBAR ========================
 
@@ -983,15 +984,6 @@ with tabs[1]:
 
 # ======================== BLOQUE 7: COMPARADOR ========================
 with tabs[2]:
-    st.header("⚖️ Comparador Nutricional de Alimentos")
-
-    st.markdown(
-        """
-        Compara alimentos por composición proximal, energía metabolizable,
-        origen de la energía y principales fuentes nutricionales.
-        """
-    )
-
     state_comp = get_current_clinical_state()
     pet_comp = state_comp["pet"]
     energy_comp = state_comp["energy"]
@@ -1001,138 +993,17 @@ with tabs[2]:
 
     alimentos_disponibles_comp = get_foods_by_species(especie_comp)
 
-    st.caption(f"Especie activa: {especie_comp.capitalize()}")
-
-    alimentos_comparar = st.multiselect(
-        "Selecciona alimentos para comparar",
-        alimentos_disponibles_comp,
-        default=alimentos_disponibles_comp[:3],
-        max_selections=6,
-        key="comparador_alimentos_avanzado",
+    render_food_comparison_dashboard(
+        foods=FOODS,
+        available_foods=alimentos_disponibles_comp,
+        species=especie_comp,
+        mer=mer_comp,
+        calculate_energy_func=calc_energy_food,
+        calculate_ena_func=calc_ena_food,
+        calculate_energy_breakdown_func=calculate_energy_breakdown,
+        default_foods=alimentos_disponibles_comp[:3],
     )
 
-    gramos_comp = st.number_input(
-        "Gramos diarios para estimar aporte y cobertura",
-        min_value=1.0,
-        max_value=5000.0,
-        value=100.0,
-        step=10.0,
-        key="comparador_gramos_avanzado",
-    )
-
-    if not alimentos_comparar:
-        st.info("Selecciona al menos un alimento para iniciar la comparación.")
-    else:
-        st.subheader("📊 Origen de la Energía Metabolizable")
-
-        st.plotly_chart(
-            plot_energy_breakdown_stacked_with_edits(
-                alimentos_comparar,
-                edited_values_map=None,
-            ),
-            use_container_width=True,
-        )
-
-        st.subheader("🃏 Fuentes nutricionales por alimento")
-
-        st.markdown(
-            """
-            Estas tarjetas muestran de qué proporción de nutrientes proviene la energía
-            y, cuando está disponible en la base, las materias primas asociadas a proteína,
-            grasa y fibra/carbohidratos.
-            """
-        )
-
-        show_energy_breakdown_cards(alimentos_comparar)
-
-        st.subheader("📋 Tabla comparativa energética")
-
-        breakdown_df = build_energy_breakdown_table_with_edits(
-            alimentos_comparar,
-            edited_values_map=None,
-        )
-
-        filas_cobertura = []
-
-        for alimento in alimentos_comparar:
-            datos = FOODS.get(alimento, {})
-            species_food = datos.get("species", especie_comp)
-        
-            energia = calc_energy_food(
-                datos,
-                species=species_food,
-            )
-        
-            ena = calc_ena_food(datos)
-
-            me = energia.get("ME", 0)
-            aporte = (me / 100.0) * gramos_comp
-            cobertura = (aporte / mer_comp * 100.0) if mer_comp and mer_comp > 0 else None
-
-            filas_cobertura.append({
-                "Alimento": alimento,
-                "PB (%)": round(datos.get("PB", 0), 2),
-                "EE (%)": round(datos.get("EE", 0), 2),
-                "FC (%)": round(datos.get("FC", 0), 2),
-                "ENA (%)": round(ena, 2),
-                "ME (kcal/100g)": round(me, 2),
-                "Aporte kcal/día": round(aporte, 1),
-                "Cobertura energética (%)": round(cobertura, 1) if cobertura is not None else "Sin MER",
-                "Fuente PB": datos.get("source_pb", ""),
-                "Fuente EE": datos.get("source_ee", ""),
-                "Fuente FC": datos.get("source_fc", ""),
-            })
-
-        df_cobertura = pd.DataFrame(filas_cobertura)
-
-        st.dataframe(
-            df_cobertura,
-            use_container_width=True,
-            hide_index=True,
-        )
-
-        st.subheader("🏆 Ranking rápido")
-
-        df_rank = df_cobertura.copy()
-        df_rank["PB (%)"] = pd.to_numeric(df_rank["PB (%)"], errors="coerce")
-        df_rank["EE (%)"] = pd.to_numeric(df_rank["EE (%)"], errors="coerce")
-        df_rank["ENA (%)"] = pd.to_numeric(df_rank["ENA (%)"], errors="coerce")
-        df_rank["ME (kcal/100g)"] = pd.to_numeric(df_rank["ME (kcal/100g)"], errors="coerce")
-
-        mejor_me = df_rank.sort_values("ME (kcal/100g)", ascending=False).iloc[0]
-        mejor_pb = df_rank.sort_values("PB (%)", ascending=False).iloc[0]
-        menor_ena = df_rank.sort_values("ENA (%)", ascending=True).iloc[0]
-
-        c1, c2, c3 = st.columns(3)
-
-        with c1:
-            st.metric(
-                "Mayor energía",
-                mejor_me["Alimento"],
-                f"{mejor_me['ME (kcal/100g)']} kcal/100g",
-            )
-
-        with c2:
-            st.metric(
-                "Mayor proteína",
-                mejor_pb["Alimento"],
-                f"{mejor_pb['PB (%)']}% PB",
-            )
-
-        with c3:
-            st.metric(
-                "Menor ENA",
-                menor_ena["Alimento"],
-                f"{menor_ena['ENA (%)']}% ENA",
-            )
-
-        if mer_comp and mer_comp > 0:
-            st.success(f"Comparación ajustada al MER actual: {mer_comp:.1f} kcal/día.")
-        else:
-            st.warning(
-                "No hay MER calculado. Completa el Perfil para estimar cobertura energética."
-            )
-            
 # ======================== BLOQUE 9: RESUMEN Y EXPORTAR ========================
 with tabs[3]:
     st.header("📋 Resumen y Exportación")
