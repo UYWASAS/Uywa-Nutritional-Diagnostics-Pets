@@ -1,130 +1,37 @@
 
 """
 UYWA Food Dashboard
-===================
-Componentes visuales para análisis individual de alimentos.
-
-Este archivo está diseñado para ser compatible con:
-- food_analysis.py v2
-- utils/ui_theme.py
-- utils/ui_cards.py
-
-Exporta:
-- render_food_selector_cards
-- render_food_header
-- render_food_composition_metrics
-- render_requirement_coverage_cards
-- render_technical_profile
-- render_ingredients_sources
+Componentes visuales limpios para análisis individual de alimentos.
 """
 
 from __future__ import annotations
 
 import html
+import textwrap
 
 import streamlit as st
 
-try:
-    from utils.ui_theme import (
-        COLORS,
-        NUTRIENT_COLORS,
-        coverage_status,
-    )
-except Exception:
-    COLORS = {
-        "primary": "#2563EB",
-        "primary_soft": "#EFF6FF",
-        "success": "#16A34A",
-        "warning": "#F59E0B",
-        "danger": "#DC2626",
-        "ink": "#0F172A",
-        "text": "#334155",
-        "muted": "#64748B",
-        "border": "#E2E8F0",
-        "surface": "#FFFFFF",
-        "surface_soft": "#F8FAFC",
-        "surface_alt": "#F1F5F9",
-    }
-    NUTRIENT_COLORS = {
-        "protein": "#DC2626",
-        "fat": "#F59E0B",
-        "fiber": "#16A34A",
-        "carbs": "#2563EB",
-        "ash": "#64748B",
-        "humidity": "#38BDF8",
-        "energy": "#7C3AED",
-    }
-
-    class _Status:
-        def __init__(self, key, label):
-            self.key = key
-            self.label = label
-
-    def coverage_status(pct, low_cut=90, high_cut=110):
-        if pct is None:
-            return _Status("neutral", "Sin referencia")
-        if pct < low_cut:
-            return _Status("low", "Bajo")
-        if pct <= high_cut:
-            return _Status("ok", "En rango")
-        if pct <= 130:
-            return _Status("warning", "Moderado")
-        return _Status("danger", "Alto")
-
-
-try:
-    from utils.ui_cards import (
-        render_section_title,
-        render_section_header,
-        render_kpi_card,
-        render_progress_card,
-        render_score_card,
-        render_source_chip_group,
-        render_badges,
-    )
-except Exception:
-    def render_section_title(title, kicker=None, subtitle=None, icon=None):
-        if kicker:
-            st.caption(kicker)
-        st.markdown(f"#### {icon + ' ' if icon else ''}{title}")
-        if subtitle:
-            st.caption(subtitle)
-
-    render_section_header = render_section_title
-
-    def render_kpi_card(title, value, unit=None, note=None, tone="primary", icon=None):
-        st.metric(f"{icon + ' ' if icon else ''}{title}", f"{value} {unit or ''}", help=note)
-
-    def render_progress_card(title, pct, req_text, aporte_text, status_label="", tone="primary"):
-        st.markdown(f"**{title}**")
-        st.caption(f"{req_text} · {aporte_text}")
-        st.progress(0 if pct is None else min(max(float(pct), 0), 140) / 140)
-        st.caption(f"{status_label} · {'—' if pct is None else f'{pct:.0f}%'}")
-
-    def render_score_card(title, score, subtitle="", tone="primary"):
-        st.metric(title, f"{score:.0f}/100", subtitle)
-
-    def render_source_chip_group(title, items, color=None):
-        st.markdown(f"**{title}**")
-        if not items:
-            st.caption("No especificado")
-            return
-        if isinstance(items, str):
-            items = [x.strip() for x in items.split(";") if x.strip()]
-        for item in items:
-            st.caption(f"• {item}")
-
-    def render_badges(labels, status="neutral"):
-        st.caption(" · ".join(str(x) for x in labels))
+from utils.ui_theme import COLORS, NUTRIENT_COLORS, coverage_status
+from utils.ui_cards import (
+    render_section_title,
+    render_kpi_card,
+    render_progress_card,
+    render_score_card,
+    render_source_chip_group,
+    render_badges,
+)
 
 
 def _esc(value) -> str:
     return html.escape(str(value or ""))
 
 
+def _render_html(raw_html: str) -> None:
+    st.markdown(textwrap.dedent(raw_html).strip(), unsafe_allow_html=True)
+
+
 def normalize_life_stage_label(value: str) -> str:
     text = str(value or "").strip().replace("-", " · ")
-
     replacements = {
         "Adultos": "Adulto",
         "Cachorro Razas": "Cachorro · Razas",
@@ -191,6 +98,7 @@ def render_food_selector_cards(
     st.session_state[page_key] = current_page
 
     current = st.session_state.get(selected_key, alimentos[0])
+
     if current not in alimentos:
         current = alimentos[0]
         st.session_state[selected_key] = current
@@ -217,13 +125,12 @@ def render_food_selector_cards(
     with nav2:
         start_item = current_page * page_size + 1
         end_item = min((current_page + 1) * page_size, total)
-        st.markdown(
+        _render_html(
             f"""
             <div style="text-align:center;color:{COLORS['muted']};font-weight:800;padding-top:0.6rem;">
-                Mostrando {start_item}-{end_item} de {total} alimentos · Página {current_page + 1}/{total_pages}
+              Mostrando {start_item}-{end_item} de {total} alimentos · Página {current_page + 1}/{total_pages}
             </div>
-            """,
-            unsafe_allow_html=True,
+            """
         )
 
     with nav3:
@@ -257,37 +164,30 @@ def render_food_selector_cards(
             global_index = page_start + row_start + i
 
             with cols[i]:
-                st.markdown(
+                _render_html(
                     f"""
-                    <div style="
-                        background:{bg};
-                        border:2px solid {border};
-                        border-radius:22px;
-                        padding:18px 18px;
-                        min-height:170px;
-                        box-shadow:{shadow};
-                        margin-bottom:10px;">
-                        <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
-                            <div style="font-size:2rem;">{_esc(fields['emoji'] or '🐾')}</div>
-                            <div>
-                                <div style="font-size:1.08rem;font-weight:950;color:{COLORS['ink']};line-height:1.12;">
-                                    {_esc(fields['nombre'])}
-                                </div>
-                                <div style="font-size:0.86rem;color:{COLORS['muted']};font-weight:800;margin-top:2px;">
-                                    {_esc(fields['marca'])}
-                                </div>
-                            </div>
+                    <div style="background:{bg};border:2px solid {border};border-radius:22px;
+                                padding:18px 18px;min-height:170px;box-shadow:{shadow};margin-bottom:10px;">
+                      <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+                        <div style="font-size:2rem;">{_esc(fields['emoji'] or '🐾')}</div>
+                        <div>
+                          <div style="font-size:1.08rem;font-weight:950;color:{COLORS['ink']};line-height:1.12;">
+                            {_esc(fields['nombre'])}
+                          </div>
+                          <div style="font-size:0.86rem;color:{COLORS['muted']};font-weight:800;margin-top:2px;">
+                            {_esc(fields['marca'])}
+                          </div>
                         </div>
-                        <div style="font-size:0.86rem;color:{COLORS['text']};margin-top:8px;min-height:22px;">
-                            {_esc(fields['etapa'])}
-                        </div>
-                        <div style="margin-top:12px;">
-                            <span class="uywa-badge">{_esc(fields['especie'])}</span>
-                            {f"<span class='uywa-badge'>{_esc(fields['categoria'])}</span>" if fields['categoria'] else ""}
-                        </div>
+                      </div>
+                      <div style="font-size:0.86rem;color:{COLORS['text']};margin-top:8px;min-height:22px;">
+                        {_esc(fields['etapa'])}
+                      </div>
+                      <div style="margin-top:12px;">
+                        <span class="uywa-badge">{_esc(fields['especie'])}</span>
+                        {f"<span class='uywa-badge'>{_esc(fields['categoria'])}</span>" if fields['categoria'] else ""}
+                      </div>
                     </div>
-                    """,
-                    unsafe_allow_html=True,
+                    """
                 )
 
                 if st.button(
@@ -316,31 +216,30 @@ def render_food_header(
     emoji = food_data.get("emoji", "🐾")
     description = food_data.get("description", "")
 
-    st.markdown(
+    _render_html(
         f"""
         <div style="background:linear-gradient(135deg,{COLORS['primary_soft']},#ffffff);
                     border:1px solid {COLORS['border']};border-left:6px solid {COLORS['primary']};
                     border-radius:24px;padding:20px 22px;margin:12px 0 18px 0;
                     box-shadow:0 10px 30px rgba(15,23,42,0.08);">
-            <div style="display:flex;align-items:center;gap:14px;">
-                <div style="font-size:2.4rem;">{_esc(emoji)}</div>
-                <div>
-                    <div style="font-size:1.55rem;font-weight:950;color:{COLORS['ink']};line-height:1.1;">{_esc(title)}</div>
-                    <div style="font-size:0.9rem;color:{COLORS['muted']};font-weight:750;margin-top:4px;">
-                        {_esc(brand)} · {_esc(species).capitalize()} · {_esc(stage)}
-                    </div>
-                </div>
+          <div style="display:flex;align-items:center;gap:14px;">
+            <div style="font-size:2.4rem;">{_esc(emoji)}</div>
+            <div>
+              <div style="font-size:1.55rem;font-weight:950;color:{COLORS['ink']};line-height:1.1;">{_esc(title)}</div>
+              <div style="font-size:0.9rem;color:{COLORS['muted']};font-weight:750;margin-top:4px;">
+                {_esc(brand)} · {_esc(species).capitalize()} · {_esc(stage)}
+              </div>
             </div>
-            <div style="margin-top:12px;color:{COLORS['text']};font-size:0.94rem;line-height:1.4;">
-                {_esc(description)}
-            </div>
-            <div style="margin-top:12px;">
-                {f"<span class='uywa-badge'>{_esc(category)}</span>" if category else ""}
-                {f"<span class='uywa-badge'>{_esc(display_name)}</span>" if display_name else ""}
-            </div>
+          </div>
+          <div style="margin-top:12px;color:{COLORS['text']};font-size:0.94rem;line-height:1.4;">
+            {_esc(description)}
+          </div>
+          <div style="margin-top:12px;">
+            {f"<span class='uywa-badge'>{_esc(category)}</span>" if category else ""}
+            {f"<span class='uywa-badge'>{_esc(display_name)}</span>" if display_name else ""}
+          </div>
         </div>
-        """,
-        unsafe_allow_html=True,
+        """
     )
 
 
@@ -465,11 +364,7 @@ def calculate_food_score(pb_pct: float, ee_pct: float, ena_pct: float, me_pct: f
     return max(0, min(score, 100))
 
 
-def render_technical_profile(
-    edited_food_data: dict,
-    ena: float,
-    me_por_100g: float,
-):
+def render_technical_profile(edited_food_data: dict, ena: float, me_por_100g: float):
     pb_pct = float(edited_food_data.get("PB", 0) or 0)
     ee_pct = float(edited_food_data.get("EE", 0) or 0)
     fc_pct = float(edited_food_data.get("FC", 0) or 0)
@@ -494,10 +389,7 @@ def render_technical_profile(
         tone="success" if score >= 80 else "warning" if score >= 65 else "danger",
     )
 
-    st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
     render_badges(tags, status="neutral")
-
-    st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
 
     c1, c2 = st.columns(2)
 
