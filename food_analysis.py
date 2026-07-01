@@ -1649,48 +1649,68 @@ def show_food_analysis():
     
         st.plotly_chart(fig_single_energy, use_container_width=True)
 
-    with tec_col2:
-        st.markdown("#### 🧾 Lectura rápida")
-
+   with tec_col2:
+        st.markdown("#### Lectura rápida")
+    
         pb_pct = float(edited_food_data.get("PB", 0))
         ee_pct = float(edited_food_data.get("EE", 0))
         fc_pct = float(edited_food_data.get("FC", 0))
         ena_pct = float(ENA)
         me_pct = float(me_por_100g)
-
+    
         perfil_tags = []
-
+    
         if pb_pct >= 28:
             perfil_tags.append("Alta proteína")
         elif pb_pct >= 20:
             perfil_tags.append("Proteína moderada")
         else:
             perfil_tags.append("Proteína baja")
-
+    
         if ee_pct >= 18:
             perfil_tags.append("Alta grasa")
         elif ee_pct <= 10:
             perfil_tags.append("Grasa controlada")
-
+        else:
+            perfil_tags.append("Grasa moderada")
+    
         if ena_pct >= 45:
             perfil_tags.append("ENA elevado")
         elif ena_pct <= 30:
-            perfil_tags.append("ENA moderado/bajo")
-
+            perfil_tags.append("ENA bajo/moderado")
+        else:
+            perfil_tags.append("ENA moderado")
+    
         if me_pct >= 380:
             perfil_tags.append("Alta densidad energética")
         elif me_pct <= 310:
-            perfil_tags.append("Densidad energética baja")
-
-        for tag in perfil_tags:
-            st.markdown(f"✓ **{tag}**")
-
-        st.markdown("---")
-        st.markdown(f"**ME estimada:** {me_pct:.1f} kcal/100g")
-        st.markdown(f"**PB:** {pb_pct:.1f}%")
-        st.markdown(f"**EE:** {ee_pct:.1f}%")
-        st.markdown(f"**FC:** {fc_pct:.1f}%")
-        st.markdown(f"**ENA:** {ena_pct:.1f}%")
+            perfil_tags.append("Baja densidad energética")
+        else:
+            perfil_tags.append("Densidad energética media")
+    
+        st.write("Perfil técnico")
+        st.pills(
+            "Indicadores",
+            perfil_tags,
+            selection_mode="multi",
+            default=perfil_tags,
+            disabled=True,
+            label_visibility="collapsed",
+        )
+    
+        st.markdown("")
+    
+        m1, m2 = st.columns(2)
+    
+        with m1:
+            st.metric("ME estimada", f"{me_pct:.1f} kcal/100g")
+            st.metric("Proteína PB", f"{pb_pct:.1f}%")
+            st.metric("Fibra FC", f"{fc_pct:.1f}%")
+    
+        with m2:
+            st.metric("Grasa EE", f"{ee_pct:.1f}%")
+            st.metric("ENA", f"{ena_pct:.1f}%")
+            st.metric("Humedad", f"{edited_food_data.get('Humidity', 0):.1f}%")
 
     st.markdown("#### 🌱 Principales materias primas identificadas")
 
