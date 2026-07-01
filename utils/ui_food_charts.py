@@ -1,20 +1,14 @@
-
 """
 UYWA Food Charts
-Gráficos Plotly premium para análisis y comparación de alimentos.
+Gráficos Plotly limpios para análisis y comparación de alimentos.
 """
 
 from __future__ import annotations
 
-import plotly.graph_objects as go
 import pandas as pd
+import plotly.graph_objects as go
 
-from utils.ui_theme import (
-    COLORS,
-    NUTRIENT_COLORS,
-    FONT_FAMILY,
-    apply_uywa_plotly_layout,
-)
+from utils.ui_theme import COLORS, NUTRIENT_COLORS, FONT_FAMILY, apply_uywa_plotly_layout
 
 
 def plot_macronutrients_donut(food_name: str, food_data: dict, ena: float, short_name: str | None = None):
@@ -47,10 +41,20 @@ def plot_macronutrients_donut(food_name: str, food_data: dict, ena: float, short
         )
     )
 
-    fig.add_annotation(text=f"<b>MS</b><br>{ms:.1f}%", x=0.5, y=0.54, showarrow=False,
-                       font=dict(size=22, color=COLORS["ink"], family=FONT_FAMILY))
-    fig.add_annotation(text=f"ENA {float(ena or 0):.1f}%", x=0.5, y=0.43, showarrow=False,
-                       font=dict(size=13, color=COLORS["muted"], family=FONT_FAMILY))
+    fig.add_annotation(
+        text=f"<b>MS</b><br>{ms:.1f}%",
+        x=0.5,
+        y=0.54,
+        showarrow=False,
+        font=dict(size=22, color=COLORS["ink"], family=FONT_FAMILY),
+    )
+    fig.add_annotation(
+        text=f"ENA {float(ena or 0):.1f}%",
+        x=0.5,
+        y=0.43,
+        showarrow=False,
+        font=dict(size=13, color=COLORS["muted"], family=FONT_FAMILY),
+    )
 
     apply_uywa_plotly_layout(fig, title=f"Composición proximal · {title}", height=460)
     fig.update_layout(margin=dict(t=70, b=70, l=20, r=20))
@@ -58,11 +62,13 @@ def plot_macronutrients_donut(food_name: str, food_data: dict, ena: float, short
 
 
 def plot_energy_sources_horizontal(bd_single: dict, title: str = "Distribución energética estimada"):
-    sources = pd.DataFrame([
-        {"Fuente": "Proteína", "kcal": bd_single.get("me_pb", 0), "pct": bd_single.get("pct_pb", 0), "color": NUTRIENT_COLORS["protein"]},
-        {"Fuente": "Grasa", "kcal": bd_single.get("me_ee", 0), "pct": bd_single.get("pct_ee", 0), "color": NUTRIENT_COLORS["fat"]},
-        {"Fuente": "Carbohidratos", "kcal": bd_single.get("me_cho", 0), "pct": bd_single.get("pct_cho", 0), "color": NUTRIENT_COLORS["carbs"]},
-    ])
+    sources = pd.DataFrame(
+        [
+            {"Fuente": "Proteína", "kcal": bd_single.get("me_pb", 0), "pct": bd_single.get("pct_pb", 0), "color": NUTRIENT_COLORS["protein"]},
+            {"Fuente": "Grasa", "kcal": bd_single.get("me_ee", 0), "pct": bd_single.get("pct_ee", 0), "color": NUTRIENT_COLORS["fat"]},
+            {"Fuente": "Carbohidratos", "kcal": bd_single.get("me_cho", 0), "pct": bd_single.get("pct_cho", 0), "color": NUTRIENT_COLORS["carbs"]},
+        ]
+    )
 
     fig = go.Figure()
     fig.add_trace(
@@ -91,10 +97,10 @@ def plot_compare_radar(df: pd.DataFrame, title: str = "Radar nutricional compara
     for _, row in df.iterrows():
         values = []
         for m in metrics:
-            max_val = df[m].max() if m in df else 1
+            max_val = df[m].max() if m in df and df[m].max() else 1
             val = row.get(m, 0)
-            norm = (float(val) / float(max_val) * 100) if max_val else 0
-            values.append(norm)
+            values.append((float(val) / float(max_val)) * 100 if max_val else 0)
+
         fig.add_trace(
             go.Scatterpolar(
                 r=values + [values[0]],
@@ -118,6 +124,7 @@ def plot_compare_radar(df: pd.DataFrame, title: str = "Radar nutricional compara
 
 def plot_compare_energy_stacked(df: pd.DataFrame, title: str = "Origen de la energía metabolizable"):
     fig = go.Figure()
+
     fig.add_trace(go.Bar(
         name="Proteína",
         x=df["Alimento corto"],
@@ -125,6 +132,7 @@ def plot_compare_energy_stacked(df: pd.DataFrame, title: str = "Origen de la ene
         marker_color=NUTRIENT_COLORS["protein"],
         hovertemplate="<b>Proteína</b><br>%{y:.1f} kcal/100g<extra></extra>",
     ))
+
     fig.add_trace(go.Bar(
         name="Grasa",
         x=df["Alimento corto"],
@@ -132,6 +140,7 @@ def plot_compare_energy_stacked(df: pd.DataFrame, title: str = "Origen de la ene
         marker_color=NUTRIENT_COLORS["fat"],
         hovertemplate="<b>Grasa</b><br>%{y:.1f} kcal/100g<extra></extra>",
     ))
+
     fig.add_trace(go.Bar(
         name="Carbohidratos",
         x=df["Alimento corto"],
@@ -139,6 +148,7 @@ def plot_compare_energy_stacked(df: pd.DataFrame, title: str = "Origen de la ene
         marker_color=NUTRIENT_COLORS["carbs"],
         hovertemplate="<b>Carbohidratos</b><br>%{y:.1f} kcal/100g<extra></extra>",
     ))
+
     apply_uywa_plotly_layout(fig, title=title, height=460)
     fig.update_layout(barmode="stack", yaxis_title="kcal/100 g", xaxis_tickangle=-15)
     return fig
@@ -146,29 +156,40 @@ def plot_compare_energy_stacked(df: pd.DataFrame, title: str = "Origen de la ene
 
 def plot_compare_energy_bullet(df: pd.DataFrame, mer: float, grams: float, title: str = "Cobertura energética por alimento"):
     fig = go.Figure()
-    if mer and mer > 0:
+
+    if mer and mer > 0 and "Cobertura energética (%)" in df:
         x = df["Cobertura energética (%)"]
-        text = [f"{v:.1f}%" if isinstance(v, (int, float)) else str(v) for v in x]
+        text = [f"{float(v):.1f}%" if pd.notna(v) else "—" for v in x]
+        x_title = "Cobertura (%)"
     else:
         x = df["Aporte kcal/día"]
-        text = [f"{v:.0f} kcal" for v in x]
+        text = [f"{float(v):.0f} kcal" for v in x]
+        x_title = "kcal/día"
 
-    fig.add_trace(go.Bar(
-        y=df["Alimento corto"],
-        x=x,
-        orientation="h",
-        marker_color=COLORS["primary"],
-        text=text,
-        textposition="auto",
-        hovertemplate="<b>%{y}</b><br>%{x:.1f}<extra></extra>",
-    ))
+    fig.add_trace(
+        go.Bar(
+            y=df["Alimento corto"],
+            x=x,
+            orientation="h",
+            marker_color=COLORS["primary"],
+            text=text,
+            textposition="auto",
+            hovertemplate="<b>%{y}</b><br>%{x:.1f}<extra></extra>",
+        )
+    )
 
     if mer and mer > 0:
-        fig.add_vline(x=100, line_width=2, line_dash="dash", line_color=COLORS["success"],
-                      annotation_text="100% MER", annotation_position="top right")
+        fig.add_vline(
+            x=100,
+            line_width=2,
+            line_dash="dash",
+            line_color=COLORS["success"],
+            annotation_text="100% MER",
+            annotation_position="top right",
+        )
         fig.add_vrect(x0=90, x1=110, fillcolor=COLORS["success"], opacity=0.08, line_width=0)
 
     apply_uywa_plotly_layout(fig, title=title, height=420)
-    fig.update_layout(showlegend=False, xaxis_title="Cobertura (%)" if mer else "kcal/día", yaxis_title="")
+    fig.update_layout(showlegend=False, xaxis_title=x_title, yaxis_title="")
     fig.update_yaxes(autorange="reversed")
     return fig
