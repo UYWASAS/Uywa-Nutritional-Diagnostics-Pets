@@ -1,15 +1,24 @@
+
 """
 UYWA Food Compare
 Comparador nutricional limpio para pestaña Comparador.
+
+Versión corregida:
+- nombres visibles únicos;
+- selector con nombre completo;
+- cards y gráficos con nombres cortos pero diferenciables;
+- evita que alimentos distintos parezcan duplicados.
 """
 
 from __future__ import annotations
+
+from collections import Counter
 
 import pandas as pd
 import streamlit as st
 
 from utils.ui_cards import render_section_title, render_kpi_card, render_source_chip_group
-from utils.ui_theme import COLORS, NUTRIENT_COLORS
+from utils.ui_theme import NUTRIENT_COLORS
 from utils.ui_food_charts import (
     plot_compare_radar,
     plot_compare_energy_stacked,
@@ -17,20 +26,126 @@ from utils.ui_food_charts import (
 )
 
 
-def _short_name(food_name: str, data: dict) -> str:
-    name = str(data.get("name", "") or "").strip()
-    brand = str(data.get("brand", "") or "").strip()
+def _clean(value) -> str:
+    return str(value or "").strip()
 
-    if name and brand:
-        return f"{name} · {brand}"
-    if name:
-        return name
 
+def _parse_key_parts(food_name: str) -> dict:
     parts = [p.strip() for p in str(food_name).split("|")]
-    if len(parts) >= 3:
-        return f"{parts[1]} · {parts[2]}"
+    parsed = {"id": "", "name": "", "brand": "", "species": "", "life_stage": ""}
 
-    return food_name
+    if len(parts) >= 5:
+        parsed["id"] = parts[0]
+        parsed["name"] = parts[1]
+        parsed["brand"] = parts[2]
+        parsed["species"] = parts[3]
+        parsed["life_stage"] = parts[4]
+    elif len(parts) >= 4:
+        parsed["name"] = parts[0]
+        parsed["brand"] = parts[1]
+        parsed["species"] = parts[2]
+        parsed["life_stage"] = parts[3]
+    elif len(parts) >= 2:
+        parsed["name"] = parts[0]
+        parsed["brand"] = parts[1]
+    else:
+        parsed["name"] = str(food_name)
+
+    return parsed
+
+
+def get_food_identity(food_name: str, data: dict) -> dict:
+    parsed = _parse_key_parts(food_name)
+
+    food_id = _clean(data.get("id")) or parsed["id"]
+    name = _clean(data.get("name")) or parsed["name"] or str(food_name)
+    brand = _clean(data.get("brand")) or parsed["brand"]
+    species = _clean(data.get("species")) or parsed["species"]
+    life_stage = _clean(data.get("life_stage")) or parsed["life_stage"]
+    category = _clean(data.get("category")) or life_stage
+    emoji = _clean(data.get("emoji")) or "🐾"
+
+    return {
+        "id": food_id,
+        "name": name,
+        "brand": brand,
+        "species": species,
+        "life_stage": life_stage,
+        "category": category,
+        "emoji": emoji,
+    }
+
+
+def food_full_label(food_name: str, data: dict) -> str:
+    ident = get_food_identity(food_name, data)
+    items = [ident["id"], ident["name"], ident["brand"], ident["species"], ident["life_stage"]]
+    return " | ".join([x for x in items if x])
+
+
+def food_medium_label(food_name: str, data: dict, include_id: bool = False) -> str:
+    ident = get_food_identity(food_name, data)
+    items = [ident["name"], ident["brand"], ident["species"], ident["life_stage"]]
+
+    if include_id and ident["id"]:
+        items.insert(0, ident["id"])
+
+    return " · ".join([x for x in items if x])
+
+
+def food_short_label(food_name: str, data: dict) -> str:
+    ident = get_food_identity(food_name, data)
+    items = [ident["name"], ident["brand"]]
+    return " · ".join([x for x in items if x]) or str(food_name)
+
+
+def build_unique_labels(food_names: list[str], foods: dict) -> dict[str, dict]:
+    base_short = {
+        fname: food_short_label(fname, foods.get(fname, {}) or {})
+        for fname in food_names
+    }
+
+    counts = Counter(base_short.values())
+    labels = {}
+
+    for fname in food_names:
+        data = foods.get(fname, {}) or {}
+        ident = get_food_identity(fname, data)
+        short = base_short[fname]
+
+        if counts[short] > 1:
+            with_stage = " · ".join(
+                [x for x in [ident["name"], ident["brand"], ident["life_stage"]] if x]
+            )
+            if with_stage:
+                short = with_stage
+
+        labels[fname] = {
+            "short": short,
+            "medium": food_medium_label(fname, data, include_id=False),
+            "full": food_full_label(fname, data),
+            "id": ident["id"],
+            "name": ident["name"],
+            "brand": ident["brand"],
+            "species": ident["species"],
+            "life_stage": ident["life_stage"],
+            "emoji": ident["emoji"],
+        }
+
+    second_counts = Counter(v["short"] for v in labels.values())
+
+    for fname, item in labels.items():
+        if second_counts[item["short"]] > 1:
+            if item["id"]:
+                item["short"] = f"{item['short']} · ID {item['id']}"
+            else:
+                item["short"] = item["full"]
+
+    return labels
+
+
+def sort_foods_for_compare(food_names: list[str], foods: dict) -> list[str]:
+    labels = build_unique_labels(food_names, foods)
+    return sorted(food_names, key=lambda x: labels[x]["full"].lower())
 
 
 def build_compare_dataframe(
@@ -43,6 +158,7 @@ def build_compare_dataframe(
     mer: float,
     grams: float,
 ) -> pd.DataFrame:
+    labels = build_unique_labels(selected_foods, foods)
     rows = []
 
     for food_name in selected_foods:
@@ -55,12 +171,18 @@ def build_compare_dataframe(
         me = float(energy.get("ME", 0) or 0)
         aporte = (me / 100.0) * grams
         cobertura = (aporte / mer * 100.0) if mer and mer > 0 else None
+        label = labels[food_name]
 
         rows.append(
             {
                 "Alimento": food_name,
-                "Alimento corto": _short_name(food_name, data),
-                "Marca": data.get("brand", ""),
+                "Alimento corto": label["short"],
+                "Alimento completo": label["full"],
+                "ID": label["id"],
+                "Nombre": label["name"],
+                "Marca": label["brand"],
+                "Especie": label["species"],
+                "Etapa": label["life_stage"],
                 "PB (%)": round(float(data.get("PB", 0) or 0), 2),
                 "EE (%)": round(float(data.get("EE", 0) or 0), 2),
                 "FC (%)": round(float(data.get("FC", 0) or 0), 2),
@@ -126,15 +248,28 @@ def render_compare_food_cards(df: pd.DataFrame) -> None:
 
         for i, (_, row) in enumerate(df.iloc[row_start:row_start + 3].iterrows()):
             with cols[i]:
-                st.container(border=True).markdown(
-                    f"""
-**{row['Alimento corto']}**  
-Marca: {row.get('Marca', '—')}
+                with st.container(border=True):
+                    st.markdown(f"**{row['Alimento corto']}**")
+                    st.caption(row["Alimento completo"])
 
-**ME:** {row['ME (kcal/100g)']:.1f} kcal/100g  
-**PB:** {row['PB (%)']:.1f}% · **EE:** {row['EE (%)']:.1f}% · **ENA:** {row['ENA (%)']:.1f}%
-                    """
-                )
+                    m1, m2 = st.columns(2)
+
+                    with m1:
+                        st.metric("ME", f"{row['ME (kcal/100g)']:.1f}", "kcal/100g")
+
+                    with m2:
+                        cobertura = row.get("Cobertura energética (%)")
+                        if pd.notna(cobertura):
+                            st.metric("Cobertura", f"{cobertura:.1f}%")
+                        else:
+                            st.metric("Cobertura", "—")
+
+                    st.markdown(
+                        f"""
+**PB:** {row['PB (%)']:.1f}% · **EE:** {row['EE (%)']:.1f}% · **FC:** {row['FC (%)']:.1f}%  
+**ENA:** {row['ENA (%)']:.1f}% · **Etapa:** {row.get('Etapa', '—')}
+                        """
+                    )
 
 
 def render_compare_sources(df: pd.DataFrame) -> None:
@@ -145,13 +280,15 @@ def render_compare_sources(df: pd.DataFrame) -> None:
         icon="🌱",
     )
 
+    options = list(df["Alimento completo"])
+
     selected = st.selectbox(
         "Revisar fuentes de:",
-        list(df["Alimento corto"]),
+        options,
         key="compare_sources_selector",
     )
 
-    row = df[df["Alimento corto"] == selected].iloc[0]
+    row = df[df["Alimento completo"] == selected].iloc[0]
 
     c1, c2, c3 = st.columns(3)
 
@@ -164,6 +301,11 @@ def render_compare_sources(df: pd.DataFrame) -> None:
     with c3:
         render_source_chip_group("🌾 Carbohidratos/fibra", row.get("Fuente FC", ""), color=NUTRIENT_COLORS["fiber"])
 
+    ingredientes = row.get("Ingredientes", "")
+    if ingredientes:
+        with st.expander("Ver ingredientes declarados", expanded=False):
+            st.write(ingredientes)
+
 
 def render_compare_table(df: pd.DataFrame) -> None:
     render_section_title(
@@ -174,7 +316,11 @@ def render_compare_table(df: pd.DataFrame) -> None:
     )
 
     table_cols = [
-        "Alimento corto",
+        "ID",
+        "Nombre",
+        "Marca",
+        "Especie",
+        "Etapa",
         "PB (%)",
         "EE (%)",
         "FC (%)",
@@ -185,7 +331,6 @@ def render_compare_table(df: pd.DataFrame) -> None:
     ]
 
     show_df = df[table_cols].copy()
-    show_df = show_df.rename(columns={"Alimento corto": "Alimento"})
 
     st.dataframe(
         show_df,
@@ -201,6 +346,49 @@ def render_compare_table(df: pd.DataFrame) -> None:
             "Cobertura energética (%)": st.column_config.NumberColumn("Cobertura energética (%)", format="%.1f"),
         },
     )
+
+
+def render_duplicate_audit(available_foods: list[str], foods: dict) -> None:
+    labels = build_unique_labels(available_foods, foods)
+    audit_rows = []
+
+    for food_name in available_foods:
+        data = foods.get(food_name, {}) or {}
+        ident = get_food_identity(food_name, data)
+        audit_rows.append(
+            {
+                "Clave": food_name,
+                "ID": ident["id"],
+                "Nombre": ident["name"],
+                "Marca": ident["brand"],
+                "Especie": ident["species"],
+                "Etapa": ident["life_stage"],
+                "Etiqueta corta": labels[food_name]["short"],
+                "Etiqueta completa": labels[food_name]["full"],
+            }
+        )
+
+    audit_df = pd.DataFrame(audit_rows)
+
+    apparent_duplicates = (
+        audit_df.groupby(["Nombre", "Marca"])
+        .size()
+        .reset_index(name="N")
+        .query("N > 1")
+        .sort_values("N", ascending=False)
+    )
+
+    with st.expander("Auditoría de nombres y duplicados aparentes", expanded=False):
+        if apparent_duplicates.empty:
+            st.success("No se detectaron nombres aparentes repetidos por Nombre + Marca.")
+        else:
+            st.warning(
+                "Hay nombres aparentes repetidos por Nombre + Marca. "
+                "Esto no necesariamente implica duplicados reales; pueden corresponder a etapas o IDs distintos."
+            )
+            st.dataframe(apparent_duplicates, use_container_width=True, hide_index=True)
+
+        st.dataframe(audit_df, use_container_width=True, hide_index=True)
 
 
 def render_food_comparison_dashboard(
@@ -224,18 +412,23 @@ def render_food_comparison_dashboard(
         st.warning("No hay alimentos disponibles para la especie activa.")
         return
 
+    available_foods = sort_foods_for_compare(available_foods, foods)
+    labels = build_unique_labels(available_foods, foods)
+
     default_foods = default_foods or available_foods[:3]
+    default_foods = [x for x in default_foods if x in available_foods][:3]
 
     def _display(food_name: str) -> str:
-        return _short_name(food_name, foods.get(food_name, {}) or {})
+        return labels[food_name]["full"]
 
     selected_foods = st.multiselect(
         "Selecciona alimentos para comparar",
         available_foods,
-        default=[x for x in default_foods if x in available_foods][:3],
+        default=default_foods,
         max_selections=6,
         key="comparador_alimentos_avanzado_v2",
         format_func=_display,
+        placeholder="Busca por ID, nombre, marca, especie o etapa...",
     )
 
     grams = st.number_input(
@@ -246,6 +439,8 @@ def render_food_comparison_dashboard(
         step=10.0,
         key="comparador_gramos_avanzado_v2",
     )
+
+    render_duplicate_audit(available_foods, foods)
 
     if not selected_foods:
         st.info("Selecciona al menos un alimento para iniciar la comparación.")
