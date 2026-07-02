@@ -818,7 +818,7 @@ def render_app_title(
         ">
             <div style="
                 font-size: 38px;
-                font-weight: 950;
+                font-weight: 800;
                 color: #0F172A;
                 line-height: 0.95;
                 letter-spacing: -1px;
