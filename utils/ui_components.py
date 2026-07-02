@@ -817,7 +817,7 @@ def render_app_title(
             margin: 0;
         ">
             <div style="
-                font-size: 58px;
+                font-size: 38px;
                 font-weight: 950;
                 color: #0F172A;
                 line-height: 0.95;
