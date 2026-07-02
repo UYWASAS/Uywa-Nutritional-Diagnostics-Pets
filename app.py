@@ -392,41 +392,47 @@ def clean_state(keys_prefix, valid_names):
 
 st.markdown(
     """
-    <div style="margin-bottom:20px;">
+    <div style="
+        padding-top:10px;
+        padding-bottom:18px;
+    ">
 
-        <h1 style="
+        <div style="
+            font-family:Inter, Montserrat, sans-serif;
             font-size:58px;
-            font-weight:800;
+            font-weight:900;
             color:#0F172A;
-            margin:0;
             line-height:1.0;
+            margin-bottom:10px;
+            letter-spacing:-1px;
         ">
             UYWA PET NUTRITION STUDIO
-        </h1>
+        </div>
 
-        <p style="
+        <div style="
+            font-family:Inter, Montserrat, sans-serif;
             font-size:22px;
             color:#64748B;
-            margin-top:8px;
-            margin-bottom:0;
+            line-height:1.4;
+            font-weight:500;
         ">
             Clinical Decision Support System for Companion Animal Nutrition
-        </p>
+        </div>
 
     </div>
     """,
     unsafe_allow_html=True,
 )
 
-
-tabs = st.tabs([
-    "Perfil de Mascota",
-    "Análisis",
-    "Comparador",
-    "Resumen y Exportar",
-    "Seguimiento del Paciente",
-])
-
+tabs = st.tabs(
+    [
+        "Perfil de Mascota",
+        "Análisis",
+        "Comparador",
+        "Resumen y Exportar",
+        "Seguimiento del Paciente",
+    ]
+)
 # ======================== BLOQUE 5.1: TAB PERFIL EDITABLE + CÁLCULOS COMPLETO ========================
 with tabs[0]:
     render_section_header(
