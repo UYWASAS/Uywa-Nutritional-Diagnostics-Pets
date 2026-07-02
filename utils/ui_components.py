@@ -805,30 +805,11 @@ def render_app_title(
     subtitle="Clinical Decision Support System for Companion Animal Nutrition",
 ):
     st.markdown(
-        f"""
-        <div style="padding-top:10px;padding-bottom:18px;">
-            <div style="
-                font-family:Inter, Montserrat, sans-serif;
-                font-size:58px;
-                font-weight:900;
-                color:#0F172A;
-                line-height:1.0;
-                margin-bottom:10px;
-                letter-spacing:-1px;
-            ">
-                {html.escape(str(title))}
-            </div>
+        f"<h1 style='font-size:58px;font-weight:900;color:#0F172A;line-height:1.0;margin:0 0 8px 0;letter-spacing:-1px;font-family:Inter, Montserrat, sans-serif;'>{html.escape(str(title))}</h1>",
+        unsafe_allow_html=True,
+    )
 
-            <div style="
-                font-family:Inter, Montserrat, sans-serif;
-                font-size:22px;
-                color:#64748B;
-                line-height:1.4;
-                font-weight:500;
-            ">
-                {html.escape(str(subtitle))}
-            </div>
-        </div>
-        """,
+    st.markdown(
+        f"<p style='font-size:22px;color:#64748B;line-height:1.4;font-weight:500;margin:0 0 22px 0;font-family:Inter, Montserrat, sans-serif;'>{html.escape(str(subtitle))}</p>",
         unsafe_allow_html=True,
     )
