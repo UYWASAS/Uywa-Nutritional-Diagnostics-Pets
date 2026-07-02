@@ -822,6 +822,7 @@ def render_app_title(
                 color: #0F172A;
                 line-height: 0.95;
                 letter-spacing: -1px;
+                word-spacing: 12px;
                 margin-bottom: 8px;
             ">
                 {title}
