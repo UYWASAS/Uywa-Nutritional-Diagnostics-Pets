@@ -800,3 +800,34 @@ def render_profile_dashboard(
             note=f"Senior: {'Sí' if senior_aplicado else 'No'}",
             tone="orange",
         )
+def render_app_title(
+    title="UYWA PET NUTRITION STUDIO",
+    subtitle="Clinical Decision Support System for Companion Animal Nutrition",
+):
+    _html(
+        f"""
+        <div style="padding-top:10px; padding-bottom:18px;">
+            <div style="
+                font-family:Inter, Montserrat, sans-serif;
+                font-size:58px;
+                font-weight:900;
+                color:#0F172A;
+                line-height:1.0;
+                margin-bottom:10px;
+                letter-spacing:-1px;
+            ">
+                {_esc(title)}
+            </div>
+
+            <div style="
+                font-family:Inter, Montserrat, sans-serif;
+                font-size:22px;
+                color:#64748B;
+                line-height:1.4;
+                font-weight:500;
+            ">
+                {_esc(subtitle)}
+            </div>
+        </div>
+        """
+    )
