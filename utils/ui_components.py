@@ -802,7 +802,7 @@ def render_profile_dashboard(
         )
 def render_app_title(
     title="UYWA PET NUTRITION STUDIO",
-    subtitle="Sistema de apoyo a la decisión clínica en nutrición de perros y gatos",
+    subtitle="Sistema de apoyo a la decisión clínica en nutrición de animales de compañia",
 ):
     st.markdown(
         f"""
