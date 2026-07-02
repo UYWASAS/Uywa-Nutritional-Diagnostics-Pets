@@ -13,6 +13,7 @@ from utils.ui_components import (
     render_bcs_card,
     render_energy_kpi_grid,
     render_profile_dashboard,
+    render_app_title,
 )
 
 from utils.nutrient_reference import (
@@ -390,39 +391,7 @@ def clean_state(keys_prefix, valid_names):
 
 # ======================== BLOQUE 5: TÍTULO Y TABS PRINCIPALES ========================
 
-st.markdown(
-    """
-    <div style="
-        padding-top:10px;
-        padding-bottom:18px;
-    ">
-
-        <div style="
-            font-family:Inter, Montserrat, sans-serif;
-            font-size:58px;
-            font-weight:900;
-            color:#0F172A;
-            line-height:1.0;
-            margin-bottom:10px;
-            letter-spacing:-1px;
-        ">
-            UYWA PET NUTRITION STUDIO
-        </div>
-
-        <div style="
-            font-family:Inter, Montserrat, sans-serif;
-            font-size:22px;
-            color:#64748B;
-            line-height:1.4;
-            font-weight:500;
-        ">
-            Clinical Decision Support System for Companion Animal Nutrition
-        </div>
-
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
+render_app_title()
 
 tabs = st.tabs(
     [
