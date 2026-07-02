@@ -3,11 +3,14 @@
 UYWA Food Compare
 Comparador nutricional limpio para pestaña Comparador.
 
-Versión release:
-- nombres visibles únicos;
-- selector con nombre completo;
-- cards y gráficos con nombres cortos diferenciables;
-- sin auditoría de depuración visible para el usuario.
+Versión release con selección de fuente energética:
+- Fórmula Uywa
+- ME declarada fabricante
+- ME inferida desde gramaje fabricante
+
+Criterio:
+- Si un alimento no tiene la fuente energética seleccionada, se excluye de la comparación.
+- Se informa al usuario qué alimentos fueron excluidos y por qué.
 """
 
 from __future__ import annotations
@@ -26,8 +29,35 @@ from utils.ui_food_charts import (
 )
 
 
+ENERGY_SOURCE_FORMULA = "Fórmula Uywa"
+ENERGY_SOURCE_MANUFACTURER = "ME declarada fabricante"
+ENERGY_SOURCE_INFERRED = "ME inferida desde gramaje fabricante"
+
+ENERGY_SOURCE_OPTIONS = [
+    ENERGY_SOURCE_FORMULA,
+    ENERGY_SOURCE_MANUFACTURER,
+    ENERGY_SOURCE_INFERRED,
+]
+
+
 def _clean(value) -> str:
     return str(value or "").strip()
+
+
+def _safe_float(value, default: float = 0.0) -> float:
+    try:
+        if value is None:
+            return default
+
+        value_txt = str(value).strip()
+
+        if value_txt == "" or value_txt.lower() == "nan":
+            return default
+
+        return float(value_txt)
+
+    except Exception:
+        return default
 
 
 def _parse_key_parts(food_name: str) -> dict:
@@ -148,6 +178,71 @@ def sort_foods_for_compare(food_names: list[str], foods: dict) -> list[str]:
     return sorted(food_names, key=lambda x: labels[x]["full"].lower())
 
 
+# =============================================================================
+# FUENTE DE ENERGÍA
+# =============================================================================
+
+def infer_me_from_manufacturer_dog_10kg(grams_day: float) -> float:
+    """
+    Estima ME kcal/kg desde gramaje recomendado para perro adulto de 10 kg.
+
+    Modelo:
+        RER = 70 × peso^0.75
+        MER perro adulto entero = RER × 1.8
+        ME kcal/kg = MER / gramos_día × 1000
+    """
+    grams_day = _safe_float(grams_day, 0.0)
+
+    if grams_day <= 0:
+        return 0.0
+
+    peso_ref = 10.0
+    rer = 70.0 * (peso_ref ** 0.75)
+    mer = rer * 1.8
+
+    return round((mer / grams_day) * 1000.0, 2)
+
+
+def get_me_for_compare(data: dict, energy: dict, energy_source: str) -> tuple[float | None, str]:
+    """
+    Retorna ME en kcal/100g según fuente seleccionada.
+
+    Si la fuente seleccionada no existe para el alimento, retorna:
+        (None, motivo)
+    """
+    me_formula_100g = _safe_float(energy.get("ME", 0.0), 0.0)
+
+    if energy_source == ENERGY_SOURCE_FORMULA:
+        if me_formula_100g > 0:
+            return me_formula_100g, ""
+        return None, "sin ME calculada por fórmula Uywa"
+
+    if energy_source == ENERGY_SOURCE_MANUFACTURER:
+        me_manufacturer_kg = _safe_float(data.get("ME_manufacturer_kcal_kg", 0.0), 0.0)
+        me_manufacturer_100g = me_manufacturer_kg / 10.0 if me_manufacturer_kg > 0 else 0.0
+
+        if me_manufacturer_100g > 0:
+            return me_manufacturer_100g, ""
+
+        return None, "sin ME declarada por fabricante"
+
+    if energy_source == ENERGY_SOURCE_INFERRED:
+        grams_ref = _safe_float(data.get("manufacturer_g_day_dog_10kg", 0.0), 0.0)
+        me_inferred_kg = infer_me_from_manufacturer_dog_10kg(grams_ref)
+        me_inferred_100g = me_inferred_kg / 10.0 if me_inferred_kg > 0 else 0.0
+
+        if me_inferred_100g > 0:
+            return me_inferred_100g, ""
+
+        return None, "sin gramaje de fabricante para perro de 10 kg"
+
+    return None, "fuente energética no reconocida"
+
+
+# =============================================================================
+# DATAFRAME
+# =============================================================================
+
 def build_compare_dataframe(
     selected_foods: list[str],
     foods: dict,
@@ -157,21 +252,58 @@ def build_compare_dataframe(
     species: str,
     mer: float,
     grams: float,
-) -> pd.DataFrame:
+    energy_source: str,
+) -> tuple[pd.DataFrame, list[dict]]:
     labels = build_unique_labels(selected_foods, foods)
     rows = []
+    excluded = []
 
     for food_name in selected_foods:
         data = foods.get(food_name, {}) or {}
         species_food = data.get("species", species)
-        energy = calculate_energy_func(data, species=species_food)
-        ena = calculate_ena_func(data)
-        bd = calculate_energy_breakdown_func(data, species=species_food)
 
-        me = float(energy.get("ME", 0) or 0)
+        try:
+            energy = calculate_energy_func(data, species=species_food)
+        except Exception as exc:
+            excluded.append(
+                {
+                    "Alimento": labels.get(food_name, {}).get("full", food_name),
+                    "Motivo": f"error al calcular energía: {exc}",
+                }
+            )
+            continue
+
+        me, reason = get_me_for_compare(data, energy, energy_source)
+
+        if me is None or me <= 0:
+            excluded.append(
+                {
+                    "Alimento": labels.get(food_name, {}).get("full", food_name),
+                    "Motivo": reason or f"sin datos para {energy_source}",
+                }
+            )
+            continue
+
+        try:
+            ena = calculate_ena_func(data)
+            bd = calculate_energy_breakdown_func(data, species=species_food)
+        except Exception as exc:
+            excluded.append(
+                {
+                    "Alimento": labels.get(food_name, {}).get("full", food_name),
+                    "Motivo": f"error al calcular composición: {exc}",
+                }
+            )
+            continue
+
         aporte = (me / 100.0) * grams
         cobertura = (aporte / mer * 100.0) if mer and mer > 0 else None
         label = labels[food_name]
+
+        # Ajustar origen energético proporcional a la ME seleccionada.
+        bd_pb = _safe_float(bd.get("pct_pb", 0), 0.0)
+        bd_ee = _safe_float(bd.get("pct_ee", 0), 0.0)
+        bd_cho = _safe_float(bd.get("pct_cho", 0), 0.0)
 
         rows.append(
             {
@@ -183,16 +315,17 @@ def build_compare_dataframe(
                 "Marca": label["brand"],
                 "Especie": label["species"],
                 "Etapa": label["life_stage"],
+                "Fuente energética": energy_source,
                 "PB (%)": round(float(data.get("PB", 0) or 0), 2),
                 "EE (%)": round(float(data.get("EE", 0) or 0), 2),
                 "FC (%)": round(float(data.get("FC", 0) or 0), 2),
                 "ENA (%)": round(float(ena or 0), 2),
-                "ME (kcal/100g)": round(me, 2),
+                "ME (kcal/100g)": round(float(me), 2),
                 "Aporte kcal/día": round(aporte, 1),
                 "Cobertura energética (%)": round(cobertura, 1) if cobertura is not None else None,
-                "ME proteína": round(float(bd.get("me_pb", 0) or 0), 2),
-                "ME grasa": round(float(bd.get("me_ee", 0) or 0), 2),
-                "ME carbohidratos": round(float(bd.get("me_cho", 0) or 0), 2),
+                "ME proteína": round(float(me) * bd_pb / 100.0, 2),
+                "ME grasa": round(float(me) * bd_ee / 100.0, 2),
+                "ME carbohidratos": round(float(me) * bd_cho / 100.0, 2),
                 "Fuente PB": data.get("source_pb", ""),
                 "Fuente EE": data.get("source_ee", ""),
                 "Fuente FC": data.get("source_fc", ""),
@@ -200,7 +333,28 @@ def build_compare_dataframe(
             }
         )
 
-    return pd.DataFrame(rows)
+    return pd.DataFrame(rows), excluded
+
+
+# =============================================================================
+# COMPONENTES DEL COMPARADOR
+# =============================================================================
+
+def render_excluded_foods(excluded_foods: list[dict], energy_source: str) -> None:
+    if not excluded_foods:
+        return
+
+    with st.expander(
+        f"Alimentos excluidos por falta de datos para: {energy_source}",
+        expanded=True,
+    ):
+        st.warning(
+            "Estos alimentos no se incluyeron en la comparación porque no tienen "
+            "la fuente energética seleccionada o no fue posible calcularla."
+        )
+
+        excluded_df = pd.DataFrame(excluded_foods)
+        st.dataframe(excluded_df, use_container_width=True, hide_index=True)
 
 
 def render_compare_summary_cards(df: pd.DataFrame, mer: float) -> None:
@@ -249,6 +403,7 @@ def render_compare_summary_cards(df: pd.DataFrame, mer: float) -> None:
 
     if mer and mer > 0 and df["Cobertura energética (%)"].notna().any():
         best_cov = df.sort_values("Cobertura energética (%)", ascending=False).iloc[0]
+
         with cols[3]:
             render_kpi_card(
                 "Mayor cobertura",
@@ -275,6 +430,7 @@ def render_compare_food_cards(df: pd.DataFrame) -> None:
                 with st.container(border=True):
                     st.markdown(f"**{row['Alimento corto']}**")
                     st.caption(row["Alimento completo"])
+                    st.caption(f"Fuente energética: {row['Fuente energética']}")
 
                     m1, m2 = st.columns(2)
 
@@ -342,6 +498,7 @@ def render_compare_table(df: pd.DataFrame) -> None:
         "Marca",
         "Especie",
         "Etapa",
+        "Fuente energética",
         "PB (%)",
         "EE (%)",
         "FC (%)",
@@ -409,20 +566,35 @@ def render_food_comparison_dashboard(
         placeholder="Busca por ID, nombre, marca, especie o etapa...",
     )
 
-    grams = st.number_input(
-        "Gramos diarios para estimar aporte y cobertura",
-        min_value=1.0,
-        max_value=5000.0,
-        value=100.0,
-        step=10.0,
-        key="comparador_gramos_avanzado_v2",
-    )
+    col_energy, col_grams = st.columns([1.2, 1])
+
+    with col_energy:
+        energy_source = st.selectbox(
+            "Fuente energética para comparar",
+            ENERGY_SOURCE_OPTIONS,
+            index=0,
+            key="comparador_fuente_me",
+            help=(
+                "La fuente seleccionada se aplica a todos los alimentos. "
+                "Los alimentos sin esa fuente energética serán excluidos de la comparación."
+            ),
+        )
+
+    with col_grams:
+        grams = st.number_input(
+            "Gramos diarios para estimar aporte y cobertura",
+            min_value=1.0,
+            max_value=5000.0,
+            value=100.0,
+            step=10.0,
+            key="comparador_gramos_avanzado_v2",
+        )
 
     if not selected_foods:
         st.info("Selecciona al menos un alimento para iniciar la comparación.")
         return
 
-    df = build_compare_dataframe(
+    df, excluded_foods = build_compare_dataframe(
         selected_foods=selected_foods,
         foods=foods,
         calculate_energy_func=calculate_energy_func,
@@ -431,7 +603,17 @@ def render_food_comparison_dashboard(
         species=species,
         mer=mer,
         grams=grams,
+        energy_source=energy_source,
     )
+
+    render_excluded_foods(excluded_foods, energy_source)
+
+    if df.empty:
+        st.error(
+            "Ningún alimento seleccionado tiene datos disponibles para la fuente energética elegida. "
+            "Selecciona otra fuente energética o elige alimentos con datos completos."
+        )
+        return
 
     render_compare_summary_cards(df, mer)
 
