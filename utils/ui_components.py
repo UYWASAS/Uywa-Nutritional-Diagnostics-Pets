@@ -804,9 +804,9 @@ def render_app_title(
     title="UYWA PET NUTRITION STUDIO",
     subtitle="Clinical Decision Support System for Companion Animal Nutrition",
 ):
-    _html(
+    st.markdown(
         f"""
-        <div style="padding-top:10px; padding-bottom:18px;">
+        <div style="padding-top:10px;padding-bottom:18px;">
             <div style="
                 font-family:Inter, Montserrat, sans-serif;
                 font-size:58px;
@@ -816,7 +816,7 @@ def render_app_title(
                 margin-bottom:10px;
                 letter-spacing:-1px;
             ">
-                {_esc(title)}
+                {html.escape(str(title))}
             </div>
 
             <div style="
@@ -826,8 +826,9 @@ def render_app_title(
                 line-height:1.4;
                 font-weight:500;
             ">
-                {_esc(subtitle)}
+                {html.escape(str(subtitle))}
             </div>
         </div>
-        """
+        """,
+        unsafe_allow_html=True,
     )
