@@ -807,8 +807,3 @@ def render_app_title(
         f"<h1 style='font-size:100px;font-weight:900;color:#0F172A;line-height:1.0;margin:0 0 8px 0;letter-spacing:-1px;font-family:Inter, Montserrat, sans-serif;'>{html.escape(str(title))}</h1>",
         unsafe_allow_html=True,
     )
-
-    st.markdown(
-        f"<p style='font-size:22px;color:#64748B;line-height:1.4;font-weight:500;margin:0 0 22px 0;font-family:Inter, Montserrat, sans-serif;'>{html.escape(str(subtitle))}</p>",
-        unsafe_allow_html=True,
-    )
