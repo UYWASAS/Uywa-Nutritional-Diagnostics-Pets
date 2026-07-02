@@ -1244,9 +1244,17 @@ with tabs[3]:
 
     _recs_default_text = "\n".join(_recomendaciones3) if _recomendaciones3 else ""
 
+    _recs_signature = (
+        f"{_food_name3}|{_gramos3}|{_me3}|{_aporte3}|{_cobertura3}|"
+        f"{_cob_pb3}|{_cob_ee3}|{_bcs3}|{_condicion3}|{_edad3}|{_mer_final3}"
+    )
+    
+    if st.session_state.get("recomendaciones_signature") != _recs_signature:
+        st.session_state["recomendaciones_veterinario_texto"] = _recs_default_text
+        st.session_state["recomendaciones_signature"] = _recs_signature
+    
     _recomendaciones_editadas_texto = st.text_area(
         "Edita o agrega recomendaciones clínicas/nutricionales para el informe:",
-        value=st.session_state.get("recomendaciones_veterinario_texto", _recs_default_text),
         height=180,
         key="recomendaciones_veterinario_texto",
     )
@@ -1296,6 +1304,7 @@ with tabs[3]:
         "fuente_pb": _food_data3.get("source_pb", ""),
         "fuente_ee": _food_data3.get("source_ee", ""),
         "fuente_fc": _food_data3.get("source_fc", ""),
+        "fuente_me": food.get("fuente_me", "Fórmula Uywa"),
         "me": _me3,
         "gramos": _gramos3,
         "aporte": _aporte3,
