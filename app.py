@@ -390,7 +390,7 @@ def clean_state(keys_prefix, valid_names):
 
 # ======================== BLOQUE 5: TÍTULO Y TABS PRINCIPALES ========================
 
-st.title("Gestión y Análisis de Dietas")
+st.title("UYWA PET NUTRITION STUDIO")
 
 tabs = st.tabs([
     "Perfil de Mascota",
