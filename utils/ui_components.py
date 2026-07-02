@@ -807,7 +807,7 @@ def render_app_title(
     st.markdown(
         f"""
         <h1 style="
-            font-size:68px;
+            font-size:100px;
             font-weight:900;
             color:#0F172A;
             line-height:1.0;
