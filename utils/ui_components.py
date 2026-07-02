@@ -3,6 +3,7 @@ import html
 import textwrap
 
 import streamlit as st
+import streamlit.components.v1 as components
 
 
 UYWA_COLORS = {
@@ -800,6 +801,7 @@ def render_profile_dashboard(
             note=f"Senior: {'Sí' if senior_aplicado else 'No'}",
             tone="orange",
         )
+
 def render_app_title(
     title="UYWA PET NUTRITION STUDIO",
     subtitle="Sistema de apoyo a la decisión clínica en nutrición de animales de compañía",
@@ -807,10 +809,33 @@ def render_app_title(
     title = html.escape(str(title))
     subtitle = html.escape(str(subtitle))
 
-    st.markdown(
-        "<div style='margin:0 0 28px 0;'>"
-        f"<div style='display:block;font-size:72px!important;font-weight:950!important;color:#0F172A!important;line-height:0.95!important;margin:0 0 8px 0!important;letter-spacing:-3px!important;font-family:Inter,Montserrat,sans-serif!important;'>{title}</div>"
-        f"<div style='display:block;font-size:24px!important;font-weight:600!important;color:#64748B!important;line-height:1.35!important;margin:0!important;font-family:Inter,Montserrat,sans-serif!important;'>{subtitle}</div>"
-        "</div>",
-        unsafe_allow_html=True,
+    components.html(
+        f"""
+        <div style="
+            font-family: Inter, Arial, sans-serif;
+            padding: 0;
+            margin: 0;
+        ">
+            <div style="
+                font-size: 72px;
+                font-weight: 950;
+                color: #0F172A;
+                line-height: 0.95;
+                letter-spacing: -3px;
+                margin-bottom: 8px;
+            ">
+                {title}
+            </div>
+
+            <div style="
+                font-size: 24px;
+                font-weight: 600;
+                color: #64748B;
+                line-height: 1.35;
+            ">
+                {subtitle}
+            </div>
+        </div>
+        """,
+        height=120,
     )
