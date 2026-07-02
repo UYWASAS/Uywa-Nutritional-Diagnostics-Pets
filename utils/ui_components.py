@@ -802,14 +802,30 @@ def render_profile_dashboard(
         )
 def render_app_title(
     title="UYWA PET NUTRITION STUDIO",
-    subtitle="Sistema de apoyo a la decisión clínica en nutrición de perros y gatos",
+    subtitle="Sistema de apoyo a la decisión clínica en nutrición de animales de compañia",
 ):
     st.markdown(
         f"""
-        <div class="uywa-app-title">
+        <div style="
+            font-size:72px !important;
+            font-weight:950 !important;
+            color:#0F172A !important;
+            line-height:0.95 !important;
+            margin:0 0 8px 0 !important;
+            letter-spacing:-3px !important;
+            font-family:Inter, Montserrat, sans-serif !important;
+        ">
             {html.escape(str(title))}
         </div>
-        <div class="uywa-app-subtitle">
+
+        <div style="
+            font-size:24px !important;
+            font-weight:600 !important;
+            color:#64748B !important;
+            line-height:1.35 !important;
+            margin:0 0 28px 0 !important;
+            font-family:Inter, Montserrat, sans-serif !important;
+        ">
             {html.escape(str(subtitle))}
         </div>
         """,
