@@ -806,33 +806,33 @@ def render_app_title(
 ):
     st.markdown(
         f"""
-        <h1 style="
-            font-size:100px;
-            font-weight:900;
-            color:#0F172A;
-            line-height:1.0;
-            margin:0 0 10px 0;
-            letter-spacing:-2px;
-            font-family:Inter, Montserrat, sans-serif;
+        <div style="
+            font-size:100px !important;
+            font-weight:900 !important;
+            color:#0F172A !important;
+            line-height:0.95 !important;
+            margin:0 0 10px 0 !important;
+            letter-spacing:-3px !important;
+            font-family:Inter, Montserrat, sans-serif !important;
         ">
             {html.escape(str(title))}
-        </h1>
+        </div>
         """,
         unsafe_allow_html=True,
     )
 
     st.markdown(
         f"""
-        <p style="
-            font-size:24px;
-            color:#64748B;
-            line-height:1.45;
-            font-weight:500;
-            margin:0 0 28px 0;
-            font-family:Inter, Montserrat, sans-serif;
+        <div style="
+            font-size:26px !important;
+            color:#64748B !important;
+            line-height:1.35 !important;
+            font-weight:500 !important;
+            margin:0 0 28px 0 !important;
+            font-family:Inter, Montserrat, sans-serif !important;
         ">
             {html.escape(str(subtitle))}
-        </p>
+        </div>
         """,
         unsafe_allow_html=True,
     )
