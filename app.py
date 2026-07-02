@@ -391,30 +391,30 @@ def clean_state(keys_prefix, valid_names):
 # ======================== BLOQUE 5: TÍTULO Y TABS PRINCIPALES ========================
 
 st.markdown(
-    """
-    <div style="margin-bottom:10px;">
-        <h1 style="
-            font-size:56px;
-            font-weight:800;
-            color:#0F172A;
-            margin-bottom:0px;
-            line-height:1.0;
-        ">
-            UYWA PET NUTRITION STUDIO
-        </h1>
-
-        <p style="
-            font-size:22px;
-            color:#64748B;
-            margin-top:6px;
-            margin-bottom:0px;
-        ">
-            Clinical Decision Support System for Companion Animal Nutrition
-        </p>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
+        """
+        <div style="margin-bottom:10px;">
+            <h1 style="
+                font-size:56px;
+                font-weight:800;
+                color:#0F172A;
+                margin-bottom:0px;
+                line-height:1.0;
+            ">
+                UYWA PET NUTRITION STUDIO
+            </h1>
+    
+            <p style="
+                font-size:22px;
+                color:#64748B;
+                margin-top:6px;
+                margin-bottom:0px;
+            ">
+                Clinical Decision Support System for Companion Animal Nutrition
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
 tabs = st.tabs([
