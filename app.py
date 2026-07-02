@@ -1240,13 +1240,29 @@ with tabs[3]:
         st.info("Complete perfil y análisis del alimento para generar decisión nutricional.")
 
     st.markdown("<br>", unsafe_allow_html=True)
-    st.subheader("💡 Recomendaciones")
+    st.subheader("💡 Recomendaciones del veterinario")
 
-    if _recomendaciones3:
-        for _rec in _recomendaciones3:
+    _recs_default_text = "\n".join(_recomendaciones3) if _recomendaciones3 else ""
+
+    _recomendaciones_editadas_texto = st.text_area(
+        "Edita o agrega recomendaciones clínicas/nutricionales para el informe:",
+        value=st.session_state.get("recomendaciones_veterinario_texto", _recs_default_text),
+        height=180,
+        key="recomendaciones_veterinario_texto",
+    )
+
+    _recomendaciones_export = [
+        rec.strip()
+        for rec in _recomendaciones_editadas_texto.split("\n")
+        if rec.strip()
+    ]
+
+    if _recomendaciones_export:
+        st.markdown("**Vista previa:**")
+        for _rec in _recomendaciones_export:
             st.markdown(f"✓ {_rec}")
     else:
-        st.info("Las recomendaciones se generan automáticamente al completar el análisis.")
+        st.info("Agrega recomendaciones para incluirlas en el informe.")
 
     st.markdown("---")
     st.subheader("📥 Descargar Informes")
@@ -1265,7 +1281,7 @@ with tabs[3]:
         "rer": _rer3 or 0.0,
         "mer_base": _mer_base3 or 0.0,
         "diagnostico": _diagnostico3,
-        "recomendaciones": _recomendaciones3,
+        "recomendaciones": _recomendaciones_export,
     }
 
     _rng_min_exp = _gramos_rec3 * 0.9 if _datos_completos else 0.0
@@ -1325,7 +1341,7 @@ with tabs[3]:
                 datos_alimento=_datos_alimento3,
                 mer_final=_mer_final3 or 0.0,
                 senior_applied=_senior3,
-                recomendaciones=_recomendaciones3,
+                recomendaciones=_recomendaciones_export,
                 nutrientes_ref=_nutrientes_ref3,
                 cob_pb=_cob_pb3,
                 cob_ee=_cob_ee3,
@@ -1352,7 +1368,7 @@ with tabs[3]:
                 _datos_alimento3,
                 _mer_final3 or 0.0,
                 _diagnostico3,
-                _recomendaciones3,
+                _recomendaciones_export,
             )
 
             st.download_button(
@@ -1367,7 +1383,3 @@ with tabs[3]:
 
         except Exception as _e:
             st.error(f"Error al generar informe HTML: {_e}")
-
-# ======================== BLOQUE 5.4: TAB SEGUIMIENTO DEL PACIENTE ========================
-with tabs[4]:
-    show_patient_followup()
