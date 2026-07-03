@@ -235,12 +235,13 @@ def render_food_selector_cards(
     with nav2:
         start_item = current_page * page_size + 1
         end_item = min((current_page + 1) * page_size, total)
-        _render_html(
+        st.markdown(
             f"""
             <div style="text-align:center;color:{COLORS['muted']};font-weight:800;padding-top:0.6rem;">
-              Mostrando {start_item}-{end_item} de {total} alimentos · Página {current_page + 1}/{total_pages}
+                Mostrando {start_item}-{end_item} de {total} alimentos · Página {current_page + 1}/{total_pages}
             </div>
-            """
+            """,
+            unsafe_allow_html=True,
         )
 
     with nav3:
@@ -262,51 +263,25 @@ def render_food_selector_cards(
         for i, alimento in enumerate(alimentos_pagina[row_start:row_start + 3]):
             fields = get_food_card_fields(alimento, foods)
             selected = alimento == current
-
-            border = COLORS["primary"] if selected else COLORS["border"]
-            bg = COLORS["primary_soft"] if selected else COLORS["surface"]
-            shadow = (
-                "0 14px 36px rgba(37,99,235,0.16)"
-                if selected
-                else "0 8px 22px rgba(15,23,42,0.06)"
-            )
-
             global_index = page_start + row_start + i
 
             with cols[i]:
-                with st.container():
-                    _render_html(
-                        f"""
-                        <div style="background:{bg};border:2px solid {border};border-radius:22px;
-                                    padding:18px 18px;min-height:180px;box-shadow:{shadow};margin-bottom:10px;">
-                        """
-                    )
-
+                with st.container(border=True):
                     img_col, info_col = st.columns([0.9, 2.6])
 
                     with img_col:
                         render_package_image(fields["data"], size=86)
 
                     with info_col:
-                        _render_html(
-                            f"""
-                            <div style="font-size:1.08rem;font-weight:950;color:{COLORS['ink']};line-height:1.12;">
-                                {_esc(fields['nombre'])}
-                            </div>
-                            <div style="font-size:0.86rem;color:{COLORS['muted']};font-weight:800;margin-top:2px;">
-                                {_esc(fields['marca'])}
-                            </div>
-                            <div style="font-size:0.86rem;color:{COLORS['text']};margin-top:12px;min-height:22px;">
-                                {_esc(fields['etapa'])}
-                            </div>
-                            <div style="margin-top:12px;">
-                                <span class="uywa-badge">{_esc(fields['especie'])}</span>
-                                {f"<span class='uywa-badge'>{_esc(fields['categoria'])}</span>" if fields['categoria'] else ""}
-                            </div>
-                            """
-                        )
+                        st.markdown(f"**{fields['nombre']}**")
+                        st.caption(fields["marca"])
+                        st.markdown(fields["etapa"])
 
-                    _render_html("</div>")
+                        badge_text = fields["especie"]
+                        if fields["categoria"]:
+                            badge_text += f" · {fields['categoria']}"
+
+                        st.caption(badge_text)
 
                 if st.button(
                     "Seleccionar" if not selected else "Seleccionado",
@@ -318,8 +293,7 @@ def render_food_selector_cards(
                     st.rerun()
 
     return st.session_state.get(selected_key, current)
-
-
+    
 def render_food_header(
     food_name: str,
     food_data: dict,
