@@ -1,13 +1,19 @@
-
 """
 UYWA Food Dashboard
 Componentes visuales limpios para análisis individual de alimentos.
+
+Versión con soporte para imagen de empaque:
+- Lee food_data["package_image"].
+- Busca imágenes en assets/food_images/packages/ y assets/food_images/brands/.
+- Tolera mayúsculas/minúsculas y nombres con o sin extensión.
+- Muestra ícono genérico si no encuentra imagen.
 """
 
 from __future__ import annotations
 
 import html
 import textwrap
+from pathlib import Path
 
 import streamlit as st
 
@@ -22,12 +28,22 @@ from utils.ui_cards import (
 )
 
 
+PACKAGE_IMAGE_DIRS = [
+    Path("assets") / "food_images" / "packages",
+    Path("assets") / "food_images" / "brands",
+]
+
+
 def _esc(value) -> str:
     return html.escape(str(value or ""))
 
 
 def _render_html(raw_html: str) -> None:
     st.markdown(textwrap.dedent(raw_html).strip(), unsafe_allow_html=True)
+
+
+def _clean(value) -> str:
+    return str(value or "").strip()
 
 
 def normalize_life_stage_label(value: str) -> str:
@@ -46,6 +62,97 @@ def normalize_life_stage_label(value: str) -> str:
     return " · ".join([p.strip() for p in text.split("·") if p.strip()])
 
 
+# =============================================================================
+# IMÁGENES DE EMPAQUE
+# =============================================================================
+
+def get_package_image_path(food_data: dict) -> Path | None:
+    """
+    Retorna la ruta local de la imagen del empaque si existe.
+
+    Lee:
+        food_data["package_image"]
+
+    Busca en:
+        assets/food_images/packages/
+        assets/food_images/brands/
+
+    La búsqueda es tolerante a:
+    - Mayúsculas/minúsculas.
+    - Nombre con o sin extensión.
+    - Extensiones png, jpg, jpeg, webp.
+    """
+    image_name = _clean(food_data.get("package_image"))
+
+    if not image_name:
+        return None
+
+    valid_exts = [".png", ".jpg", ".jpeg", ".webp"]
+    candidates: list[Path] = []
+
+    for folder in PACKAGE_IMAGE_DIRS:
+        candidates.append(folder / image_name)
+
+    if Path(image_name).suffix == "":
+        for folder in PACKAGE_IMAGE_DIRS:
+            for ext in valid_exts:
+                candidates.append(folder / f"{image_name}{ext}")
+
+    for candidate in candidates:
+        if candidate.exists() and candidate.is_file():
+            return candidate
+
+    image_stem = Path(image_name).stem.lower()
+    image_suffix = Path(image_name).suffix.lower()
+
+    for folder in PACKAGE_IMAGE_DIRS:
+        if not folder.exists():
+            continue
+
+        for file in folder.iterdir():
+            if not file.is_file():
+                continue
+
+            same_stem = file.stem.lower() == image_stem
+            same_suffix = image_suffix == "" or file.suffix.lower() == image_suffix
+
+            if same_stem and same_suffix:
+                return file
+
+    return None
+
+
+def render_package_image(food_data: dict, size: int = 96) -> None:
+    """
+    Renderiza imagen de empaque o un placeholder si no existe.
+    """
+    image_path = get_package_image_path(food_data)
+
+    if image_path:
+        st.image(str(image_path), width=size)
+        return
+
+    st.markdown(
+        f"""
+        <div style="
+            width:{size}px;
+            height:{size}px;
+            border-radius:20px;
+            background:linear-gradient(135deg,#EFF6FF 0%,#F8FAFC 100%);
+            border:1px solid #DBEAFE;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            font-size:36px;
+            box-shadow:0 8px 20px rgba(15,23,42,0.06);
+        ">
+            🥫
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
 def get_food_card_fields(food_name: str, foods: dict) -> dict:
     data = foods.get(food_name, {}) or {}
 
@@ -55,6 +162,7 @@ def get_food_card_fields(food_name: str, foods: dict) -> dict:
     especie = str(data.get("species", "") or "").strip()
     categoria = str(data.get("category", "") or "").strip()
     emoji = str(data.get("emoji", "") or "").strip()
+    package_image = str(data.get("package_image", "") or "").strip()
 
     if not nombre:
         partes = [p.strip() for p in str(food_name).split("|")]
@@ -74,7 +182,9 @@ def get_food_card_fields(food_name: str, foods: dict) -> dict:
         "especie": especie.capitalize(),
         "categoria": categoria,
         "emoji": emoji,
+        "package_image": package_image,
         "description": str(data.get("description", "") or "").strip(),
+        "data": data,
     }
 
 
@@ -164,31 +274,39 @@ def render_food_selector_cards(
             global_index = page_start + row_start + i
 
             with cols[i]:
-                _render_html(
-                    f"""
-                    <div style="background:{bg};border:2px solid {border};border-radius:22px;
-                                padding:18px 18px;min-height:170px;box-shadow:{shadow};margin-bottom:10px;">
-                      <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
-                        <div style="font-size:2rem;">{_esc(fields['emoji'] or '🐾')}</div>
-                        <div>
-                          <div style="font-size:1.08rem;font-weight:950;color:{COLORS['ink']};line-height:1.12;">
-                            {_esc(fields['nombre'])}
-                          </div>
-                          <div style="font-size:0.86rem;color:{COLORS['muted']};font-weight:800;margin-top:2px;">
-                            {_esc(fields['marca'])}
-                          </div>
-                        </div>
-                      </div>
-                      <div style="font-size:0.86rem;color:{COLORS['text']};margin-top:8px;min-height:22px;">
-                        {_esc(fields['etapa'])}
-                      </div>
-                      <div style="margin-top:12px;">
-                        <span class="uywa-badge">{_esc(fields['especie'])}</span>
-                        {f"<span class='uywa-badge'>{_esc(fields['categoria'])}</span>" if fields['categoria'] else ""}
-                      </div>
-                    </div>
-                    """
-                )
+                with st.container():
+                    _render_html(
+                        f"""
+                        <div style="background:{bg};border:2px solid {border};border-radius:22px;
+                                    padding:18px 18px;min-height:180px;box-shadow:{shadow};margin-bottom:10px;">
+                        """
+                    )
+
+                    img_col, info_col = st.columns([0.9, 2.6])
+
+                    with img_col:
+                        render_package_image(fields["data"], size=86)
+
+                    with info_col:
+                        _render_html(
+                            f"""
+                            <div style="font-size:1.08rem;font-weight:950;color:{COLORS['ink']};line-height:1.12;">
+                                {_esc(fields['nombre'])}
+                            </div>
+                            <div style="font-size:0.86rem;color:{COLORS['muted']};font-weight:800;margin-top:2px;">
+                                {_esc(fields['marca'])}
+                            </div>
+                            <div style="font-size:0.86rem;color:{COLORS['text']};margin-top:12px;min-height:22px;">
+                                {_esc(fields['etapa'])}
+                            </div>
+                            <div style="margin-top:12px;">
+                                <span class="uywa-badge">{_esc(fields['especie'])}</span>
+                                {f"<span class='uywa-badge'>{_esc(fields['categoria'])}</span>" if fields['categoria'] else ""}
+                            </div>
+                            """
+                        )
+
+                    _render_html("</div>")
 
                 if st.button(
                     "Seleccionar" if not selected else "Seleccionado",
@@ -213,7 +331,6 @@ def render_food_header(
     species = food_data.get("species", "")
     stage = normalize_life_stage_label(food_data.get("life_stage", ""))
     category = food_data.get("category", "")
-    emoji = food_data.get("emoji", "🐾")
     description = food_data.get("description", "")
 
     _render_html(
@@ -222,25 +339,34 @@ def render_food_header(
                     border:1px solid {COLORS['border']};border-left:6px solid {COLORS['primary']};
                     border-radius:24px;padding:20px 22px;margin:12px 0 18px 0;
                     box-shadow:0 10px 30px rgba(15,23,42,0.08);">
-          <div style="display:flex;align-items:center;gap:14px;">
-            <div style="font-size:2.4rem;">{_esc(emoji)}</div>
-            <div>
-              <div style="font-size:1.55rem;font-weight:950;color:{COLORS['ink']};line-height:1.1;">{_esc(title)}</div>
-              <div style="font-size:0.9rem;color:{COLORS['muted']};font-weight:750;margin-top:4px;">
-                {_esc(brand)} · {_esc(species).capitalize()} · {_esc(stage)}
-              </div>
-            </div>
-          </div>
-          <div style="margin-top:12px;color:{COLORS['text']};font-size:0.94rem;line-height:1.4;">
-            {_esc(description)}
-          </div>
-          <div style="margin-top:12px;">
-            {f"<span class='uywa-badge'>{_esc(category)}</span>" if category else ""}
-            {f"<span class='uywa-badge'>{_esc(display_name)}</span>" if display_name else ""}
-          </div>
-        </div>
         """
     )
+
+    img_col, info_col = st.columns([0.8, 5])
+
+    with img_col:
+        render_package_image(food_data, size=112)
+
+    with info_col:
+        _render_html(
+            f"""
+            <div style="font-size:1.55rem;font-weight:950;color:{COLORS['ink']};line-height:1.1;">
+                {_esc(title)}
+            </div>
+            <div style="font-size:0.9rem;color:{COLORS['muted']};font-weight:750;margin-top:4px;">
+                {_esc(brand)} · {_esc(species).capitalize()} · {_esc(stage)}
+            </div>
+            <div style="margin-top:12px;color:{COLORS['text']};font-size:0.94rem;line-height:1.4;">
+                {_esc(description)}
+            </div>
+            <div style="margin-top:12px;">
+                {f"<span class='uywa-badge'>{_esc(category)}</span>" if category else ""}
+                {f"<span class='uywa-badge'>{_esc(display_name)}</span>" if display_name else ""}
+            </div>
+            """
+        )
+
+    _render_html("</div>")
 
 
 def render_food_composition_metrics(food_data: dict, ena: float, me_kcal_100g: float) -> None:
@@ -438,6 +564,8 @@ def render_ingredients_sources(food_data: dict) -> None:
 
 __all__ = [
     "normalize_life_stage_label",
+    "get_package_image_path",
+    "render_package_image",
     "get_food_card_fields",
     "render_food_selector_cards",
     "render_food_header",
