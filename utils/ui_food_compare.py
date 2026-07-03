@@ -1,27 +1,31 @@
-
 """
 UYWA Food Compare
-Comparador nutricional limpio para pestaña Comparador.
+Comparador nutricional para pestaña Comparador.
 
-Versión release con selección de fuente energética:
-- Fórmula Uywa
-- ME declarada fabricante
-- ME inferida desde gramaje fabricante
+Versión con:
+- Selección de fuente energética.
+- Exclusión explícita de alimentos sin datos para la fuente seleccionada.
+- Etiquetas únicas y limpias.
+- Tarjetas visuales con miniatura del empaque.
+- Mantiene gráficos comparativos: energía apilada, cobertura y radar.
 
-Criterio:
-- Si un alimento no tiene la fuente energética seleccionada, se excluye de la comparación.
-- Se informa al usuario qué alimentos fueron excluidos y por qué.
+Requiere que cada alimento pueda incluir opcionalmente:
+    package_image: nombre del archivo de imagen del empaque.
+
+Ruta esperada:
+    assets/food_images/packages/<package_image>
 """
 
 from __future__ import annotations
 
 from collections import Counter
+from pathlib import Path
 
 import pandas as pd
 import streamlit as st
 
 from utils.ui_cards import render_section_title, render_kpi_card, render_source_chip_group
-from utils.ui_theme import NUTRIENT_COLORS
+from utils.ui_theme import NUTRIENT_COLORS, COLORS
 from utils.ui_food_charts import (
     plot_compare_radar,
     plot_compare_energy_stacked,
@@ -39,6 +43,12 @@ ENERGY_SOURCE_OPTIONS = [
     ENERGY_SOURCE_INFERRED,
 ]
 
+PACKAGE_IMAGE_DIR = Path("assets") / "food_images" / "packages"
+
+
+# =============================================================================
+# UTILIDADES BASE
+# =============================================================================
 
 def _clean(value) -> str:
     return str(value or "").strip()
@@ -49,7 +59,7 @@ def _safe_float(value, default: float = 0.0) -> float:
         if value is None:
             return default
 
-        value_txt = str(value).strip()
+        value_txt = str(value).strip().replace(",", ".")
 
         if value_txt == "" or value_txt.lower() == "nan":
             return default
@@ -58,6 +68,13 @@ def _safe_float(value, default: float = 0.0) -> float:
 
     except Exception:
         return default
+
+
+def _short_text(value: str, max_len: int = 42) -> str:
+    value = str(value or "").strip()
+    if len(value) <= max_len:
+        return value
+    return value[: max_len - 1].rstrip() + "…"
 
 
 def _parse_key_parts(food_name: str) -> dict:
@@ -94,6 +111,7 @@ def get_food_identity(food_name: str, data: dict) -> dict:
     life_stage = _clean(data.get("life_stage")) or parsed["life_stage"]
     category = _clean(data.get("category")) or life_stage
     emoji = _clean(data.get("emoji")) or "🐾"
+    package_image = _clean(data.get("package_image"))
 
     return {
         "id": food_id,
@@ -103,6 +121,7 @@ def get_food_identity(food_name: str, data: dict) -> dict:
         "life_stage": life_stage,
         "category": category,
         "emoji": emoji,
+        "package_image": package_image,
     }
 
 
@@ -159,11 +178,12 @@ def build_unique_labels(food_names: list[str], foods: dict) -> dict[str, dict]:
             "species": ident["species"],
             "life_stage": ident["life_stage"],
             "emoji": ident["emoji"],
+            "package_image": ident["package_image"],
         }
 
     second_counts = Counter(v["short"] for v in labels.values())
 
-    for fname, item in labels.items():
+    for _, item in labels.items():
         if second_counts[item["short"]] > 1:
             if item["id"]:
                 item["short"] = f"{item['short']} · ID {item['id']}"
@@ -176,6 +196,52 @@ def build_unique_labels(food_names: list[str], foods: dict) -> dict[str, dict]:
 def sort_foods_for_compare(food_names: list[str], foods: dict) -> list[str]:
     labels = build_unique_labels(food_names, foods)
     return sorted(food_names, key=lambda x: labels[x]["full"].lower())
+
+
+# =============================================================================
+# IMÁGENES DE EMPAQUE
+# =============================================================================
+
+def get_package_image_path(food_data: dict) -> Path | None:
+    image_name = _clean(food_data.get("package_image"))
+
+    if not image_name:
+        return None
+
+    image_path = PACKAGE_IMAGE_DIR / image_name
+
+    if image_path.exists() and image_path.is_file():
+        return image_path
+
+    return None
+
+
+def render_package_image(food_data: dict, size: int = 96) -> None:
+    image_path = get_package_image_path(food_data)
+
+    if image_path:
+        st.image(str(image_path), width=size)
+        return
+
+    st.markdown(
+        f"""
+        <div style="
+            width:{size}px;
+            height:{size}px;
+            border-radius:20px;
+            background:linear-gradient(135deg,#EFF6FF 0%,#F8FAFC 100%);
+            border:1px solid #DBEAFE;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            font-size:36px;
+            box-shadow:0 8px 20px rgba(15,23,42,0.06);
+        ">
+            🥫
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
 # =============================================================================
@@ -300,7 +366,6 @@ def build_compare_dataframe(
         cobertura = (aporte / mer * 100.0) if mer and mer > 0 else None
         label = labels[food_name]
 
-        # Ajustar origen energético proporcional a la ME seleccionada.
         bd_pb = _safe_float(bd.get("pct_pb", 0), 0.0)
         bd_ee = _safe_float(bd.get("pct_ee", 0), 0.0)
         bd_cho = _safe_float(bd.get("pct_cho", 0), 0.0)
@@ -315,6 +380,8 @@ def build_compare_dataframe(
                 "Marca": label["brand"],
                 "Especie": label["species"],
                 "Etapa": label["life_stage"],
+                "Emoji": label["emoji"],
+                "Package image": label["package_image"],
                 "Fuente energética": energy_source,
                 "PB (%)": round(float(data.get("PB", 0) or 0), 2),
                 "EE (%)": round(float(data.get("EE", 0) or 0), 2),
@@ -330,6 +397,7 @@ def build_compare_dataframe(
                 "Fuente EE": data.get("source_ee", ""),
                 "Fuente FC": data.get("source_fc", ""),
                 "Ingredientes": data.get("ingredients", ""),
+                "_data": data,
             }
         )
 
@@ -414,11 +482,24 @@ def render_compare_summary_cards(df: pd.DataFrame, mer: float) -> None:
             )
 
 
+def render_food_identity_line(row: pd.Series) -> None:
+    meta = " · ".join(
+        [
+            str(row.get("Marca", "") or ""),
+            str(row.get("Especie", "") or ""),
+            str(row.get("Etapa", "") or ""),
+        ]
+    )
+    meta = meta.strip(" ·")
+    if meta:
+        st.caption(meta)
+
+
 def render_compare_food_cards(df: pd.DataFrame) -> None:
     render_section_title(
         "Tarjetas nutricionales",
         kicker="Perfil por alimento",
-        subtitle="Resumen compacto de composición, energía y fuentes declaradas.",
+        subtitle="Resumen visual con empaque, composición proximal, energía y cobertura estimada.",
         icon="🃏",
     )
 
@@ -428,9 +509,23 @@ def render_compare_food_cards(df: pd.DataFrame) -> None:
         for i, (_, row) in enumerate(df.iloc[row_start:row_start + 3].iterrows()):
             with cols[i]:
                 with st.container(border=True):
-                    st.markdown(f"**{row['Alimento corto']}**")
-                    st.caption(row["Alimento completo"])
-                    st.caption(f"Fuente energética: {row['Fuente energética']}")
+                    img_col, text_col = st.columns([1, 2.7])
+
+                    with img_col:
+                        render_package_image(row.get("_data", {}) or {}, size=88)
+
+                    with text_col:
+                        title = _short_text(row.get("Alimento corto", "Alimento"), 48)
+                        st.markdown(f"**{title}**")
+                        render_food_identity_line(row)
+                        st.caption(f"Fuente energética: {row['Fuente energética']}")
+
+                    st.markdown(
+                        """
+                        <div style="height:6px;"></div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
 
                     m1, m2 = st.columns(2)
 
@@ -439,14 +534,38 @@ def render_compare_food_cards(df: pd.DataFrame) -> None:
 
                     with m2:
                         cobertura = row.get("Cobertura energética (%)")
-                        st.metric("Cobertura", f"{cobertura:.1f}%" if pd.notna(cobertura) else "—")
+                        st.metric(
+                            "Cobertura",
+                            f"{cobertura:.1f}%" if pd.notna(cobertura) else "—",
+                        )
 
-                    st.markdown(
-                        f"""
-**PB:** {row['PB (%)']:.1f}% · **EE:** {row['EE (%)']:.1f}% · **FC:** {row['FC (%)']:.1f}%  
-**ENA:** {row['ENA (%)']:.1f}% · **Etapa:** {row.get('Etapa', '—')}
-                        """
-                    )
+                    p1, p2, p3 = st.columns(3)
+
+                    with p1:
+                        st.markdown(
+                            f"<span style='color:{NUTRIENT_COLORS['protein']};font-weight:800;'>🥩 PB</span><br><b>{row['PB (%)']:.1f}%</b>",
+                            unsafe_allow_html=True,
+                        )
+
+                    with p2:
+                        st.markdown(
+                            f"<span style='color:{NUTRIENT_COLORS['fat']};font-weight:800;'>🧈 EE</span><br><b>{row['EE (%)']:.1f}%</b>",
+                            unsafe_allow_html=True,
+                        )
+
+                    with p3:
+                        st.markdown(
+                            f"<span style='color:{NUTRIENT_COLORS['carbs']};font-weight:800;'>🌽 ENA</span><br><b>{row['ENA (%)']:.1f}%</b>",
+                            unsafe_allow_html=True,
+                        )
+
+                    with st.expander("Ver detalle", expanded=False):
+                        st.markdown(f"**Alimento completo:** {row['Alimento completo']}")
+                        st.markdown(f"**Fibra cruda:** {row['FC (%)']:.1f}%")
+                        st.markdown(f"**Aporte estimado:** {row['Aporte kcal/día']:.1f} kcal/día")
+                        ingredientes = row.get("Ingredientes", "")
+                        if ingredientes:
+                            st.caption(f"Ingredientes: {ingredientes}")
 
 
 def render_compare_sources(df: pd.DataFrame) -> None:
@@ -498,6 +617,7 @@ def render_compare_table(df: pd.DataFrame) -> None:
         "Marca",
         "Especie",
         "Etapa",
+        "Package image",
         "Fuente energética",
         "PB (%)",
         "EE (%)",
