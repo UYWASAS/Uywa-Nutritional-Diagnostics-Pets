@@ -72,6 +72,51 @@ def safe_optional_float(value, default=0.0):
     except Exception:
         return default
 
+
+def safe_optional_text(value, default=""):
+    """
+    Convierte valores opcionales del Excel/CSV a texto limpio.
+    Soporta celdas vacías, NaN y valores None.
+    """
+    try:
+        if value is None:
+            return default
+
+        if pd.isna(value):
+            return default
+
+        value_txt = str(value).strip()
+
+        if value_txt == "" or value_txt.lower() == "nan":
+            return default
+
+        return value_txt
+
+    except Exception:
+        return default
+
+
+def get_optional_column_value(row, *column_names, default=""):
+    """
+    Lee una columna opcional aceptando nombres alternativos.
+
+    Uso principal:
+    - package_image
+    - pacjage_image  # compatibilidad con posible error de escritura
+    """
+    try:
+        for col in column_names:
+            if hasattr(row, "index") and col in row.index:
+                return safe_optional_text(row.get(col, default), default)
+
+            if isinstance(row, dict) and col in row:
+                return safe_optional_text(row.get(col, default), default)
+
+        return default
+
+    except Exception:
+        return default
+
 def make_food_key(id_alimento, nombre, especie, etapa, marca=""):
     """
     Construye una clave única para cada alimento.
@@ -201,6 +246,12 @@ def load_diets_from_csv(csv_path: str) -> dict:
                         "presentations": row.get("Presentaciones", "").strip(),
                         "availability": row.get("Disponibilidad", "").strip(),
                         "benefits": row.get("Beneficios", "").strip(),
+                        # Imagen de empaque
+                        "package_image": get_optional_column_value(
+                            row,
+                            "package_image",
+                            "pacjage_image",
+                        ),
                         # Fuentes principales de nutrientes
                         "source_pb": row.get("Fuente_PB", "").strip(),
                         "source_ee": row.get("Fuente_EE", "").strip(),
@@ -358,6 +409,11 @@ def load_diets_from_csv_v2(csv_path: str) -> dict:
                     fuente_ee = row.get("Fuente_EE", "").strip()
                     fuente_fc = row.get("Fuente_FC", "").strip()
                     otros = row.get("Otros", "").strip()
+                    package_image = get_optional_column_value(
+                        row,
+                        "package_image",
+                        "pacjage_image",
+                    )
 
                     # --- Emoji según especie ---
                     especie_lower = especie.lower()
@@ -398,6 +454,7 @@ def load_diets_from_csv_v2(csv_path: str) -> dict:
                         "species": especie,
                         "life_stage": etapa,
                         "price_usd_kg": precio,
+                        "package_image": package_image,
                         # Info nutricional detallada
                         "ingredients": ingredientes,
                         "source_pb": fuente_pb,
@@ -599,7 +656,16 @@ def load_diets_from_xlsx_v2(xlsx_path: str) -> dict:
                 fuente_fc = str(row.get("Fuente_FC", "")).strip()
                 otros_raw = row.get("Otros", "")
                 otros = str(otros_raw).strip() if pd.notna(otros_raw) else ""
-                                # --- DATOS OPCIONALES DEL FABRICANTE ---
+
+                # Imagen de empaque opcional.
+                # Se acepta "package_image" y también "pacjage_image" por compatibilidad.
+                package_image = get_optional_column_value(
+                    row,
+                    "package_image",
+                    "pacjage_image",
+                )
+
+                # --- DATOS OPCIONALES DEL FABRICANTE ---
                 me_manufacturer_kcal_kg = safe_optional_float(
                     row.get("ME_manufacturer_kcal_kg", 0),
                     0.0,
@@ -646,6 +712,7 @@ def load_diets_from_xlsx_v2(xlsx_path: str) -> dict:
                     "species": especie,
                     "life_stage": etapa,
                     "price_usd_kg": precio,
+                    "package_image": package_image,
                     "ME_manufacturer_kcal_kg": round(me_manufacturer_kcal_kg, 2),
                     "manufacturer_g_day_dog_10kg": round(manufacturer_g_day_dog_10kg, 2),
                     # Info nutricional detallada
