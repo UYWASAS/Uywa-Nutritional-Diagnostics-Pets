@@ -208,40 +208,49 @@ def get_package_image_path(food_data: dict) -> Path | None:
     if not image_name:
         return None
 
-    image_path = PACKAGE_IMAGE_DIR / image_name
+    search_dirs = [
+        Path("assets") / "food_images" / "packages",
+        Path("assets") / "food_images" / "brands",
+    ]
 
-    if image_path.exists() and image_path.is_file():
-        return image_path
+    valid_exts = [".png", ".jpg", ".jpeg", ".webp"]
+
+    candidates = []
+
+    # 1. Nombre exacto como viene del Excel
+    for folder in search_dirs:
+        candidates.append(folder / image_name)
+
+    # 2. Si viene sin extensión, probar extensiones comunes
+    if Path(image_name).suffix == "":
+        for folder in search_dirs:
+            for ext in valid_exts:
+                candidates.append(folder / f"{image_name}{ext}")
+
+    # 3. Búsqueda exacta
+    for path in candidates:
+        if path.exists() and path.is_file():
+            return path
+
+    # 4. Búsqueda tolerante a mayúsculas/minúsculas
+    image_stem = Path(image_name).stem.lower()
+    image_suffix = Path(image_name).suffix.lower()
+
+    for folder in search_dirs:
+        if not folder.exists():
+            continue
+
+        for file in folder.iterdir():
+            if not file.is_file():
+                continue
+
+            same_stem = file.stem.lower() == image_stem
+            same_suffix = image_suffix == "" or file.suffix.lower() == image_suffix
+
+            if same_stem and same_suffix:
+                return file
 
     return None
-
-
-def render_package_image(food_data: dict, size: int = 96) -> None:
-    image_path = get_package_image_path(food_data)
-
-    if image_path:
-        st.image(str(image_path), width=size)
-        return
-
-    st.markdown(
-        f"""
-        <div style="
-            width:{size}px;
-            height:{size}px;
-            border-radius:20px;
-            background:linear-gradient(135deg,#EFF6FF 0%,#F8FAFC 100%);
-            border:1px solid #DBEAFE;
-            display:flex;
-            align-items:center;
-            justify-content:center;
-            font-size:36px;
-            box-shadow:0 8px 20px rgba(15,23,42,0.06);
-        ">
-            🥫
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
 
 
 # =============================================================================
