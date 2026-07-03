@@ -433,6 +433,78 @@ def render_excluded_foods(excluded_foods: list[dict], energy_source: str) -> Non
         excluded_df = pd.DataFrame(excluded_foods)
         st.dataframe(excluded_df, use_container_width=True, hide_index=True)
 
+def get_package_image_path(food_data: dict) -> Path | None:
+    image_name = _clean(food_data.get("package_image"))
+
+    if not image_name:
+        return None
+
+    search_dirs = [
+        Path("assets") / "food_images" / "packages",
+        Path("assets") / "food_images" / "brands",
+    ]
+
+    valid_exts = [".png", ".jpg", ".jpeg", ".webp"]
+    candidates = []
+
+    for folder in search_dirs:
+        candidates.append(folder / image_name)
+
+    if Path(image_name).suffix == "":
+        for folder in search_dirs:
+            for ext in valid_exts:
+                candidates.append(folder / f"{image_name}{ext}")
+
+    for path in candidates:
+        if path.exists() and path.is_file():
+            return path
+
+    image_stem = Path(image_name).stem.lower()
+    image_suffix = Path(image_name).suffix.lower()
+
+    for folder in search_dirs:
+        if not folder.exists():
+            continue
+
+        for file in folder.iterdir():
+            if not file.is_file():
+                continue
+
+            same_stem = file.stem.lower() == image_stem
+            same_suffix = image_suffix == "" or file.suffix.lower() == image_suffix
+
+            if same_stem and same_suffix:
+                return file
+
+    return None
+
+
+def render_package_image(food_data: dict, size: int = 96) -> None:
+    image_path = get_package_image_path(food_data)
+
+    if image_path:
+        st.image(str(image_path), width=size)
+        return
+
+    st.markdown(
+        f"""
+        <div style="
+            width:{size}px;
+            height:{size}px;
+            border-radius:20px;
+            background:linear-gradient(135deg,#EFF6FF 0%,#F8FAFC 100%);
+            border:1px solid #DBEAFE;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            font-size:36px;
+            box-shadow:0 8px 20px rgba(15,23,42,0.06);
+        ">
+            🥫
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 def render_compare_summary_cards(df: pd.DataFrame, mer: float) -> None:
     if df.empty:
