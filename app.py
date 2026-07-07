@@ -458,23 +458,25 @@ with tabs[0]:
         ),
     )
 
-    # --- Formulario de edición en expander ---
-    mascota = profile.get("mascota", {})
+   # --- Formulario de edición en expander ---
+mascota = profile.get("mascota", {})
 
-    with st.expander("✏️ Editar perfil clínico del paciente", expanded=True):
+with st.expander("✏️ Editar perfil clínico del paciente", expanded=True):
 
-        st.markdown("### 1. Datos básicos del paciente")
+    st.markdown("### 1. Datos básicos del paciente")
 
-        ef_col1, ef_col2 = st.columns(2)
+    ef_col1, ef_col2 = st.columns(2)
 
-        with ef_col1:
-            nombre_mascota = st.text_input(
-                "Nombre de la mascota",
-                value=mascota.get("nombre", "Mascota"),
-                key="nombre_mascota",
-            )
+    with ef_col1:
 
-    _especie_anterior = st.session_state.get("_last_especie_mascota")
+        nombre_mascota = st.text_input(
+            "Nombre de la mascota",
+            value=mascota.get("nombre", "Mascota"),
+            key="nombre_mascota",
+        )
+
+        _especie_anterior = st.session_state.get("_last_especie_mascota")
+
         especie = st.selectbox(
             "Especie",
             ["perro", "gato"],
@@ -483,42 +485,49 @@ with tabs[0]:
             ),
             key="especie_mascota",
         )
-        
+
         if _especie_anterior is None:
             st.session_state["_last_especie_mascota"] = especie
-        
+
         elif _especie_anterior != especie:
             st.session_state["_last_especie_mascota"] = especie
             reset_species_dependent_state()
             st.rerun()
-        
-                    edad = st.number_input(
-                        "Edad en años",
-                        min_value=0.1,
-                        max_value=20.0,
-                        value=max(0.1, safe_float(mascota.get("edad", 1.0), 1.0)),
-                        step=0.1,
-                        key="edad_mascota",
-                    )
 
-        with ef_col2:
-            peso = st.number_input(
-                "Peso en kg",
-                min_value=0.1,
-                max_value=200.0,
-                value=max(0.1, safe_float(mascota.get("peso", 12.0), 12.0)),
-                step=0.1,
-                key="peso_mascota",
-            )
+        edad = st.number_input(
+            "Edad en años",
+            min_value=0.1,
+            max_value=20.0,
+            value=max(
+                0.1,
+                safe_float(mascota.get("edad", 1.0), 1.0),
+            ),
+            step=0.1,
+            key="edad_mascota",
+        )
 
-            etapa = st.selectbox(
-                "Etapa de vida",
-                ["adulto", "cachorro"],
-                index=["adulto", "cachorro"].index(
-                    mascota.get("etapa", "adulto").lower()
-                ),
-                key="etapa_mascota",
-            )
+    with ef_col2:
+
+        peso = st.number_input(
+            "Peso en kg",
+            min_value=0.1,
+            max_value=200.0,
+            value=max(
+                0.1,
+                safe_float(mascota.get("peso", 12.0), 12.0),
+            ),
+            step=0.1,
+            key="peso_mascota",
+        )
+
+        etapa = st.selectbox(
+            "Etapa de vida",
+            ["adulto", "cachorro"],
+            index=["adulto", "cachorro"].index(
+                mascota.get("etapa", "adulto").lower()
+            ),
+            key="etapa_mascota",
+        )
 
         st.markdown("---")
         st.markdown("### 2. Condición fisiológica")
