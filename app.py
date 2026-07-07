@@ -407,6 +407,7 @@ def reset_species_dependent_state():
     keys_exact = [
         "analysis_food_selector_card",
         "analysis_food_card_page",
+        "food_search_input",
         "alimento_seleccionado",
         "food_name",
         "analysis_food_name_edited",
@@ -436,11 +437,11 @@ def reset_species_dependent_state():
         "comp_editor_",
         "gramos_alimento_",
         "fuente_me_",
+        "analysis_food_card_select_",
     ]
 
     for key in keys_exact:
-        if key in st.session_state:
-            del st.session_state[key]
+        st.session_state.pop(key, None)
 
     for key in list(st.session_state.keys()):
         if any(key.startswith(prefix) for prefix in prefixes):
@@ -473,24 +474,32 @@ with tabs[0]:
                 key="nombre_mascota",
             )
 
-            especie = st.selectbox(
-                "Especie",
-                ["perro", "gato"],
-                index=["perro", "gato"].index(
-                    mascota.get("especie", "perro").lower()
-                ),
-                key="especie_mascota",
-                on_change=reset_species_dependent_state,
-            )
-
-            edad = st.number_input(
-                "Edad en años",
-                min_value=0.1,
-                max_value=20.0,
-                value=max(0.1, safe_float(mascota.get("edad", 1.0), 1.0)),
-                step=0.1,
-                key="edad_mascota",
-            )
+        _especie_anterior = st.session_state.get("_last_especie_mascota")
+        especie = st.selectbox(
+            "Especie",
+            ["perro", "gato"],
+            index=["perro", "gato"].index(
+                mascota.get("especie", "perro").lower()
+            ),
+            key="especie_mascota",
+        )
+        
+        if _especie_anterior is None:
+            st.session_state["_last_especie_mascota"] = especie
+        
+        elif _especie_anterior != especie:
+            st.session_state["_last_especie_mascota"] = especie
+            reset_species_dependent_state()
+            st.rerun()
+        
+                    edad = st.number_input(
+                        "Edad en años",
+                        min_value=0.1,
+                        max_value=20.0,
+                        value=max(0.1, safe_float(mascota.get("edad", 1.0), 1.0)),
+                        step=0.1,
+                        key="edad_mascota",
+                    )
 
         with ef_col2:
             peso = st.number_input(
