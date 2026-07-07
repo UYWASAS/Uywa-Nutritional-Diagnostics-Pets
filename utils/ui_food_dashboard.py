@@ -307,41 +307,39 @@ def render_food_header(
     category = food_data.get("category", "")
     description = food_data.get("description", "")
 
-    _render_html(
-        f"""
-        <div style="background:linear-gradient(135deg,{COLORS['primary_soft']},#ffffff);
-                    border:1px solid {COLORS['border']};border-left:6px solid {COLORS['primary']};
-                    border-radius:24px;padding:20px 22px;margin:12px 0 18px 0;
-                    box-shadow:0 10px 30px rgba(15,23,42,0.08);">
-        """
-    )
+    with st.container(border=True):
+        img_col, info_col = st.columns([0.8, 5])
 
-    img_col, info_col = st.columns([0.8, 5])
+        with img_col:
+            render_package_image(food_data, size=112)
 
-    with img_col:
-        render_package_image(food_data, size=112)
+        with info_col:
+            st.markdown(f"### {title}")
 
-    with info_col:
-        _render_html(
-            f"""
-            <div style="font-size:1.55rem;font-weight:950;color:{COLORS['ink']};line-height:1.1;">
-                {_esc(title)}
-            </div>
-            <div style="font-size:0.9rem;color:{COLORS['muted']};font-weight:750;margin-top:4px;">
-                {_esc(brand)} · {_esc(species).capitalize()} · {_esc(stage)}
-            </div>
-            <div style="margin-top:12px;color:{COLORS['text']};font-size:0.94rem;line-height:1.4;">
-                {_esc(description)}
-            </div>
-            <div style="margin-top:12px;">
-                {f"<span class='uywa-badge'>{_esc(category)}</span>" if category else ""}
-                {f"<span class='uywa-badge'>{_esc(display_name)}</span>" if display_name else ""}
-            </div>
-            """
-        )
+            meta = " · ".join(
+                [
+                    str(brand or "").strip(),
+                    str(species or "").capitalize(),
+                    str(stage or "").strip(),
+                ]
+            ).strip(" ·")
 
-    _render_html("</div>")
+            if meta:
+                st.caption(meta)
 
+            if description:
+                st.markdown(description)
+
+            badges = []
+
+            if category:
+                badges.append(str(category))
+
+            if display_name:
+                badges.append(str(display_name))
+
+            if badges:
+                st.caption(" · ".join(badges))
 
 def render_food_composition_metrics(food_data: dict, ena: float, me_kcal_100g: float) -> None:
     render_section_title(
