@@ -198,7 +198,7 @@ def render_food_selector_cards(
         return None
 
     page_key = f"{key_prefix}_page"
-    selected_key = "analysis_food_selector_card"
+    selected_key = f"{key_prefix}_selected"
 
     total = len(alimentos)
     total_pages = max(1, (total + page_size - 1) // page_size)
