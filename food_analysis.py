@@ -397,8 +397,6 @@ def reset_food_analysis_state_on_species_change(species: str) -> None:
 
     exact_keys = [
         "analysis_food_selector_card",
-        "analysis_food_card_page",
-        "food_search_input",
         "alimento_seleccionado",
         "food_name",
         "analysis_food_name_edited",
@@ -414,6 +412,12 @@ def reset_food_analysis_state_on_species_change(species: str) -> None:
         "gramos_recomendados_actual",
         "cobertura_proteina_actual",
         "cobertura_grasa_actual",
+
+        # keys por especie
+        "food_search_input_perro",
+        "food_search_input_gato",
+        "analysis_food_card_perro_page",
+        "analysis_food_card_gato_page",
     ]
 
     prefixes = [
@@ -421,7 +425,7 @@ def reset_food_analysis_state_on_species_change(species: str) -> None:
         "comp_editor_",
         "gramos_alimento_",
         "fuente_me_",
-        "analysis_food_card_select_",
+        "analysis_food_card_",
     ]
 
     for key in exact_keys:
@@ -436,17 +440,17 @@ def reset_food_analysis_state_on_species_change(species: str) -> None:
 def show_food_analysis():
     inject_uywa_theme()
 
+    especie = st.session_state.get("especie_mascota", "")
+    especie_norm = normalize_species(especie)
+
+    reset_food_analysis_state_on_species_change(especie_norm)
+
     render_section_title(
         "Análisis nutricional de alimentos",
         kicker="Uywa Pets",
         subtitle="Selecciona un alimento, ajusta su composición proximal y evalúa aporte energético y cobertura nutricional.",
         icon="🍽️",
     )
-
-    especie = st.session_state.get("especie_mascota", "")
-    especie_norm = normalize_species(especie)
-
-    reset_food_analysis_state_on_species_change(especie_norm)
 
     if especie_norm:
         st.caption(f"Especie activa: **{especie_norm.capitalize()}**")
