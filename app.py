@@ -430,6 +430,12 @@ def reset_species_dependent_state():
         "recomendaciones_signature",
         "recomendaciones_veterinario_texto",
         "condicion_mascota",
+        "food_search_input_perro",
+        "food_search_input_gato",
+        "analysis_food_card_perro_page",
+        "analysis_food_card_gato_page",
+        "analysis_food_card_perro_selected",
+        "analysis_food_card_gato_selected",
     ]
 
     prefixes = [
@@ -437,7 +443,7 @@ def reset_species_dependent_state():
         "comp_editor_",
         "gramos_alimento_",
         "fuente_me_",
-        "analysis_food_card_select_",
+        "analysis_food_card_",
     ]
 
     for key in keys_exact:
