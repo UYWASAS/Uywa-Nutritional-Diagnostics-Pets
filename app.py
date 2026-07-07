@@ -402,6 +402,50 @@ tabs = st.tabs(
         "Seguimiento del Paciente",
     ]
 )
+
+def reset_species_dependent_state():
+    keys_exact = [
+        "analysis_food_selector_card",
+        "analysis_food_card_page",
+        "alimento_seleccionado",
+        "food_name",
+        "analysis_food_name_edited",
+        "analysis_food_data_edited",
+        "analysis_food_proximal_sum",
+        "me_alimento_actual",
+        "energia_aportada_actual",
+        "fuente_me_actual",
+        "me_formula_uywa_actual",
+        "me_manufacturer_actual",
+        "me_inferred_manufacturer_actual",
+        "cobertura_energia_actual",
+        "gramos_recomendados_actual",
+        "cobertura_proteina_actual",
+        "cobertura_grasa_actual",
+        "compare_sources_selector",
+        "comparador_alimentos_avanzado_v2",
+        "comparador_fuente_me",
+        "comparador_gramos_avanzado_v2",
+        "recomendaciones_signature",
+        "recomendaciones_veterinario_texto",
+        "condicion_mascota",
+    ]
+
+    prefixes = [
+        "comp_data_",
+        "comp_editor_",
+        "gramos_alimento_",
+        "fuente_me_",
+    ]
+
+    for key in keys_exact:
+        if key in st.session_state:
+            del st.session_state[key]
+
+    for key in list(st.session_state.keys()):
+        if any(key.startswith(prefix) for prefix in prefixes):
+            del st.session_state[key]
+
 # ======================== BLOQUE 5.1: TAB PERFIL EDITABLE + CÁLCULOS COMPLETO ========================
 with tabs[0]:
     render_section_header(
@@ -436,6 +480,7 @@ with tabs[0]:
                     mascota.get("especie", "perro").lower()
                 ),
                 key="especie_mascota",
+                on_change=reset_species_dependent_state,
             )
 
             edad = st.number_input(
