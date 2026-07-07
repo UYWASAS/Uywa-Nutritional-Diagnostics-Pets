@@ -458,260 +458,58 @@ with tabs[0]:
         ),
     )
 
-   # --- Formulario de edición en expander ---
-mascota = profile.get("mascota", {})
-
-with st.expander("✏️ Editar perfil clínico del paciente", expanded=True):
-
-    st.markdown("### 1. Datos básicos del paciente")
-
-    ef_col1, ef_col2 = st.columns(2)
-
-    with ef_col1:
-
-        nombre_mascota = st.text_input(
-            "Nombre de la mascota",
-            value=mascota.get("nombre", "Mascota"),
-            key="nombre_mascota",
-        )
-
-        _especie_anterior = st.session_state.get("_last_especie_mascota")
-
-        especie = st.selectbox(
-            "Especie",
-            ["perro", "gato"],
-            index=["perro", "gato"].index(
-                mascota.get("especie", "perro").lower()
-            ),
-            key="especie_mascota",
-        )
-
-        if _especie_anterior is None:
-            st.session_state["_last_especie_mascota"] = especie
-
-        elif _especie_anterior != especie:
-            st.session_state["_last_especie_mascota"] = especie
-            reset_species_dependent_state()
-            st.rerun()
-
-        edad = st.number_input(
-            "Edad en años",
-            min_value=0.1,
-            max_value=20.0,
-            value=max(
-                0.1,
-                safe_float(mascota.get("edad", 1.0), 1.0),
-            ),
-            step=0.1,
-            key="edad_mascota",
-        )
-
-    with ef_col2:
-
-        peso = st.number_input(
-            "Peso en kg",
-            min_value=0.1,
-            max_value=200.0,
-            value=max(
-                0.1,
-                safe_float(mascota.get("peso", 12.0), 12.0),
-            ),
-            step=0.1,
-            key="peso_mascota",
-        )
-
-        etapa = st.selectbox(
-            "Etapa de vida",
-            ["adulto", "cachorro"],
-            index=["adulto", "cachorro"].index(
-                mascota.get("etapa", "adulto").lower()
-            ),
-            key="etapa_mascota",
-        )
-
-        st.markdown("---")
-        st.markdown("### 2. Condición fisiológica")
-
-        _especie_form_cond = st.session_state.get(
-            "especie_mascota",
-            mascota.get("especie", "perro"),
-        )
-
-        _etapa_actual_form = st.session_state.get(
-            "etapa_mascota",
-            mascota.get("etapa", "adulto"),
-        )
-
-        if _etapa_actual_form == "adulto":
-            if _especie_form_cond == "perro":
-                opciones_condicion = [
-                    "Castrado",
-                    "Entero",
-                    "Gestación (Primera mitad)",
-                    "Gestación (Segunda mitad)",
-                    "Lactancia",
-                ]
-            else:
-                opciones_condicion = [
-                    "Castrado",
-                    "Entero",
-                    "Indoor",
-                    "Tendencia obesidad",
-                    "Obeso",
-                    "Bajo peso",
-                    "Gestación (Inicio)",
-                    "Gestación (Final)",
-                    "Lactancia",
-                ]
-        else:
-            opciones_condicion = [
-                "Destete a 4 meses",
-                "5 meses hasta adulto",
-            ]
-
-        condicion_predeterminada = mascota.get("condicion", "Castrado")
-
-        if condicion_predeterminada not in opciones_condicion:
-            condicion_predeterminada = opciones_condicion[0]
-
-        condicion = st.selectbox(
-            "Condición fisiológica/productiva",
-            opciones_condicion,
-            index=opciones_condicion.index(condicion_predeterminada),
-            key="condicion_mascota",
-        )
-
-        st.markdown("---")
-        st.markdown("### 3. Estado corporal")
-
-        bcs_disabled = (
-            st.session_state.get(
-                "etapa_mascota",
-                mascota.get("etapa", "adulto"),
-            ) == "cachorro"
-            and condicion == "Destete a 4 meses"
-        )
-
-        bcs_val = max(
-            1,
-            min(
-                9,
-                int(safe_float(mascota.get("bcs", 5), 5)),
-            ),
-        )
-
-        bcs = st.slider(
-            "Condición Corporal (BCS 1–9)",
-            min_value=1,
-            max_value=9,
-            value=bcs_val,
-            key="bcs_mascota",
-            disabled=bcs_disabled,
-        )
-
-        if bcs_disabled:
-            st.info(
-                "En cachorros destete a 4 meses, el BCS puede no ser el criterio principal "
-                "para ajustar el requerimiento energético."
-            )
-
-        _etapa_form = st.session_state.get(
-            "etapa_mascota",
-            mascota.get("etapa", "adulto"),
-        )
-
-        _especie_form = st.session_state.get(
-            "especie_mascota",
-            mascota.get("especie", "perro"),
-        )
-
-        _edad_form = safe_float(
-            st.session_state.get(
-                "edad_mascota",
-                mascota.get("edad", 1.0),
-            ),
-            1.0,
-        )
-
-        if _etapa_form == "adulto" and _especie_form in ("perro", "gato"):
-            _stored_senior = mascota.get("aplicar_ajuste_senior")
-            _senior_default = (
-                bool(_stored_senior)
-                if _stored_senior is not None
-                else (_edad_form >= 7)
-            )
-
-            aplicar_ajuste_senior_form = st.checkbox(
-                "👴 Aplicar ajuste energético Senior (-15%)",
-                value=_senior_default,
-                key="aplicar_ajuste_senior_mascota",
-                help=(
-                    "Reduce el MER en un 15% para mascotas adultas senior. "
-                    "Puede aplicarse adicionalmente al ajuste por condición corporal bajo criterio veterinario."
-                ),
-            )
-
-            if _edad_form >= 7:
-                st.info("Recomendado para mascotas adultas mayores de 7 años.")
-        else:
-            aplicar_ajuste_senior_form = False
-
-            if "aplicar_ajuste_senior_mascota" in st.session_state:
-                del st.session_state["aplicar_ajuste_senior_mascota"]
-
-        st.markdown("---")
-        st.markdown("### 4. Foto del paciente")
-
-        foto_upload = st.file_uploader(
-            "Foto de la mascota (opcional)",
-            type=["png", "jpg", "jpeg"],
-            key="foto_mascota_upload",
-        )
-
-        if foto_upload is not None:
-            st.session_state["mascota_foto_bytes"] = foto_upload.getvalue()
-
-        if st.session_state.get("mascota_foto_bytes"):
-            col_prev, col_del = st.columns([1, 3])
-
-            with col_prev:
-                st.image(
-                    st.session_state["mascota_foto_bytes"],
-                    width=120,
-                    caption="Vista previa",
-                )
-
-            with col_del:
-                st.markdown("<br>", unsafe_allow_html=True)
-                if st.button("🗑️ Eliminar foto", key="del_foto_perfil"):
-                    del st.session_state["mascota_foto_bytes"]
-                    st.rerun()
-
-        st.markdown("---")
-
-        if st.button(
-            "💾 Guardar perfil de mascota",
-            key="guardar_perfil_btn",
-            use_container_width=True,
-        ):
-            mascota_actualizada = {
-                "nombre": st.session_state["nombre_mascota"],
-                "especie": st.session_state["especie_mascota"].lower(),
-                "edad": st.session_state["edad_mascota"],
-                "peso": st.session_state["peso_mascota"],
-                "etapa": st.session_state["etapa_mascota"].lower(),
-                "condicion": condicion,
-                "bcs": st.session_state.get("bcs_mascota", 5),
-                "aplicar_ajuste_senior": st.session_state.get(
-                    "aplicar_ajuste_senior_mascota",
-                    False,
-                ),
-            }
-
-            profile["mascota"] = mascota_actualizada
-            update_and_save_profile(profile)
-            st.success("✅ Perfil actualizado correctamente.")
+    # --- Formulario de edición en expander ---
     mascota = profile.get("mascota", {})
+
+    with st.expander("✏️ Editar perfil clínico del paciente", expanded=True):
+
+        st.markdown("### 1. Datos básicos del paciente")
+
+        ef_col1, ef_col2 = st.columns(2)
+
+        with ef_col1:
+            nombre_mascota = st.text_input(
+                "Nombre de la mascota",
+                value=mascota.get("nombre", "Mascota"),
+                key="nombre_mascota",
+            )
+
+            especie = st.selectbox(
+                "Especie",
+                ["perro", "gato"],
+                index=["perro", "gato"].index(
+                    mascota.get("especie", "perro").lower()
+                ),
+                key="especie_mascota",
+            )
+
+            edad = st.number_input(
+                "Edad en años",
+                min_value=0.1,
+                max_value=20.0,
+                value=max(0.1, safe_float(mascota.get("edad", 1.0), 1.0)),
+                step=0.1,
+                key="edad_mascota",
+            )
+
+        with ef_col2:
+            peso = st.number_input(
+                "Peso en kg",
+                min_value=0.1,
+                max_value=200.0,
+                value=max(0.1, safe_float(mascota.get("peso", 12.0), 12.0)),
+                step=0.1,
+                key="peso_mascota",
+            )
+
+            etapa = st.selectbox(
+                "Etapa de vida",
+                ["adulto", "cachorro"],
+                index=["adulto", "cachorro"].index(
+                    mascota.get("etapa", "adulto").lower()
+                ),
+                key="etapa_mascota",
+            )
 
     # Leer valores actuales (del estado de sesión si fueron modificados, o del perfil guardado)
     especie = st.session_state.get("especie_mascota", mascota.get("especie", "perro"))
