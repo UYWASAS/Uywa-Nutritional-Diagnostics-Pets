@@ -687,6 +687,15 @@ with tabs[0]:
             
     # Leer valores actuales (del estado de sesión si fueron modificados, o del perfil guardado)
     especie = st.session_state.get("especie_mascota", mascota.get("especie", "perro"))
+    _last_species = st.session_state.get("_last_species_rendered")
+
+    if _last_species is None:
+        st.session_state["_last_species_rendered"] = especie
+    
+    elif _last_species != especie:
+        st.session_state["_last_species_rendered"] = especie
+        reset_species_dependent_state()
+        st.rerun()
     etapa = st.session_state.get("etapa_mascota", mascota.get("etapa", "adulto"))
     condicion = st.session_state.get("condicion_mascota", mascota.get("condicion", "Castrado"))
     bcs = max(1, min(9, int(safe_float(st.session_state.get("bcs_mascota", mascota.get("bcs", 5)), 5))))
