@@ -393,16 +393,21 @@ def clean_state(keys_prefix, valid_names):
 
 render_app_title()
 
-tabs = st.tabs(
-    [
-        "Perfil de Mascota",
-        "Análisis",
-        "Comparador",
-        "Resumen y Exportar",
-        "Seguimiento del Paciente",
-    ]
-)
+PAGINAS = [
+    "Perfil de Mascota",
+    "Análisis",
+    "Comparador",
+    "Resumen y Exportar",
+    "Seguimiento del Paciente",
+]
 
+pagina_activa = st.radio(
+    "Navegación principal",
+    PAGINAS,
+    horizontal=True,
+    label_visibility="collapsed",
+    key="pagina_activa_principal",
+)
 def reset_species_dependent_state():
     keys_exact = [
         "analysis_food_selector_card",
@@ -454,7 +459,7 @@ def reset_species_dependent_state():
             del st.session_state[key]
 
 # ======================== BLOQUE 5.1: TAB PERFIL EDITABLE + CÁLCULOS COMPLETO ========================
-with tabs[0]:
+if pagina_activa == "Perfil de Mascota":
     render_section_header(
         title="Perfil clínico-nutricional",
         kicker="Paciente y requerimiento energético",
@@ -1031,11 +1036,11 @@ with tabs[0]:
         st.stop()
 
 # ======================== BLOQUE 6: ANÁLISIS NUTRICIONAL ========================
-with tabs[1]:
+elif pagina_activa == "Análisis":
     show_food_analysis()
 
 # ======================== BLOQUE 7: COMPARADOR ========================
-with tabs[2]:
+elif pagina_activa == "Comparador":
     state_comp = get_current_clinical_state()
     pet_comp = state_comp["pet"]
     energy_comp = state_comp["energy"]
@@ -1057,7 +1062,7 @@ with tabs[2]:
     )
 
 # ======================== BLOQUE 9: RESUMEN Y EXPORTAR ========================
-with tabs[3]:
+elif pagina_activa == "Resumen y Exportar":
     st.header("📋 Resumen y Exportación")
 
     ready, ready_message = clinical_state_is_ready(require_food=False)
