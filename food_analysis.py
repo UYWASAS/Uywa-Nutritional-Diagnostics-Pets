@@ -12,7 +12,7 @@ from food_database import (
     calculate_energy_breakdown,
     get_food_names,
     get_food_data,
-    infer_me_from_manufacturer_dog_10kg,
+    infer_me_from_manufacturer_reference,
 )
 
 from utils.ui_theme import inject_uywa_theme
@@ -332,8 +332,13 @@ def _get_energy_source_options(edited_food_data: dict, energy: dict, safe_key: s
     me_manufacturer_kcal_kg = float(edited_food_data.get("ME_manufacturer_kcal_kg", 0.0) or 0.0)
     me_manufacturer_kcal_100g = me_manufacturer_kcal_kg / 10.0 if me_manufacturer_kcal_kg > 0 else 0.0
 
-    manufacturer_g_day_10kg = float(edited_food_data.get("manufacturer_g_day_dog_10kg", 0.0) or 0.0)
-    me_inferred_kcal_kg = infer_me_from_manufacturer_dog_10kg(manufacturer_g_day_10kg)
+    manufacturer_g_day_ref = float(edited_food_data.get("manufacturer_g_day_ref", 0.0) or 0.0)
+
+    me_inferred_kcal_kg = infer_me_from_manufacturer_reference(
+        manufacturer_g_day_ref,
+        species=edited_food_data.get("species", "perro"),
+    )
+    
     me_inferred_kcal_100g = me_inferred_kcal_kg / 10.0 if me_inferred_kcal_kg > 0 else 0.0
 
     opciones_me = ["Fórmula Uywa"]
