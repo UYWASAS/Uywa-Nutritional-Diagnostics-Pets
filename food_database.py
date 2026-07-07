@@ -246,6 +246,10 @@ def load_diets_from_csv(csv_path: str) -> dict:
                         "presentations": row.get("Presentaciones", "").strip(),
                         "availability": row.get("Disponibilidad", "").strip(),
                         "benefits": row.get("Beneficios", "").strip(),
+                        "manufacturer_g_day_ref": safe_optional_float(
+                            row.get("manufacturer_g_day_ref", row.get("manufacturer_g_day_dog_10kg", 0)),
+                            0.0,
+                        ),
                         # Imagen de empaque
                         "package_image": get_optional_column_value(
                             row,
@@ -414,6 +418,10 @@ def load_diets_from_csv_v2(csv_path: str) -> dict:
                         "package_image",
                         "pacjage_image",
                     )
+                    manufacturer_g_day_ref = safe_optional_float(
+                        row.get("manufacturer_g_day_ref", row.get("manufacturer_g_day_dog_10kg", 0)),
+                        0.0,
+                    )
 
                     # --- Emoji según especie ---
                     especie_lower = especie.lower()
@@ -455,6 +463,7 @@ def load_diets_from_csv_v2(csv_path: str) -> dict:
                         "life_stage": etapa,
                         "price_usd_kg": precio,
                         "package_image": package_image,
+                        "manufacturer_g_day_ref": round(manufacturer_g_day_ref, 2),
                         # Info nutricional detallada
                         "ingredients": ingredientes,
                         "source_pb": fuente_pb,
@@ -671,8 +680,8 @@ def load_diets_from_xlsx_v2(xlsx_path: str) -> dict:
                     0.0,
                 )
 
-                manufacturer_g_day_dog_10kg = safe_optional_float(
-                    row.get("manufacturer_g_day_dog_10kg", 0),
+                manufacturer_g_day_ref = safe_optional_float(
+                    row.get("manufacturer_g_day_ref", row.get("manufacturer_g_day_dog_10kg", 0)),
                     0.0,
                 )
 
@@ -714,7 +723,7 @@ def load_diets_from_xlsx_v2(xlsx_path: str) -> dict:
                     "price_usd_kg": precio,
                     "package_image": package_image,
                     "ME_manufacturer_kcal_kg": round(me_manufacturer_kcal_kg, 2),
-                    "manufacturer_g_day_dog_10kg": round(manufacturer_g_day_dog_10kg, 2),
+                    "manufacturer_g_day_ref": round(manufacturer_g_day_ref, 2),
                     # Info nutricional detallada
                     "ingredients": ingredientes,
                     "source_pb": fuente_pb,
@@ -993,15 +1002,23 @@ def calculate_energy_breakdown(food_data, species="perro"):
         "DE_pct": energy["DE_pct"],
         "equation_species": energy["equation_species"],
     }
-def infer_me_from_manufacturer_dog_10kg(grams_day):
+def infer_me_from_manufacturer_reference(grams_day, species="perro"):
     """
     Estima la energía metabolizable del alimento a partir del gramaje
-    recomendado por el fabricante para un perro adulto entero de 10 kg
-    con actividad normal.
+    recomendado por el fabricante para el peso de referencia de la especie.
 
-    Modelo actual Uywa:
-        RER = 70 × peso^0.75
-        Factor perro adulto entero = 1.8
+    Interpretación de la columna:
+        manufacturer_g_day_ref = gramos/día recomendados por el fabricante
+        para el animal de referencia de cada especie.
+
+    Referencias usadas:
+        Canino/perro:
+            peso referencia = 10 kg
+            factor MER = 1.8
+
+        Felino/gato:
+            peso referencia = 5 kg
+            factor MER = 1.2
 
     Retorna:
         kcal/kg
@@ -1012,16 +1029,59 @@ def infer_me_from_manufacturer_dog_10kg(grams_day):
         if grams_day <= 0:
             return 0.0
 
-        peso_referencia = 10.0
-        rer = 70.0 * (peso_referencia ** 0.75)
-        mer = rer * 1.8
+        species_clean = str(species or "").strip().lower()
 
+        if (
+            "gato" in species_clean
+            or "felino" in species_clean
+            or "cat" in species_clean
+        ):
+            peso_referencia = 5.0
+            factor_mer = 1.2
+        else:
+            peso_referencia = 10.0
+            factor_mer = 1.8
+
+        rer = 70.0 * (peso_referencia ** 0.75)
+        mer = rer * factor_mer
         me_kcal_kg = (mer / grams_day) * 1000.0
 
         return round(me_kcal_kg, 2)
 
     except Exception:
         return 0.0
+
+
+def infer_me_from_food_manufacturer_reference(food_data: dict) -> float:
+    """
+    Inferencia directa desde un alimento de FOODS.
+
+    Usa:
+        food_data["manufacturer_g_day_ref"]
+        food_data["species"]
+
+    Retorna:
+        kcal/kg
+    """
+    return infer_me_from_manufacturer_reference(
+        food_data.get("manufacturer_g_day_ref", 0),
+        species=food_data.get("species", "perro"),
+    )
+
+
+def infer_me_from_manufacturer_dog_10kg(grams_day):
+    """
+    Compatibilidad hacia atrás.
+    Mantiene la función antigua para evitar errores en módulos que aún la llamen.
+
+    Equivale a:
+        infer_me_from_manufacturer_reference(grams_day, species="perro")
+    """
+    return infer_me_from_manufacturer_reference(
+        grams_day,
+        species="perro",
+    )
+
 # ---------------------------------------------------------------------------
 # Inicialización: intentar cargar desde XLSX v2 (21 columnas, recalcula energía);
 # si falla intentar CSV v2, luego CSV v1, y en último recurso usar fallback.
