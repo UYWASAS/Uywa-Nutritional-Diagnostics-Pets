@@ -418,6 +418,8 @@ def reset_food_analysis_state_on_species_change(species: str) -> None:
         "food_search_input_gato",
         "analysis_food_card_perro_page",
         "analysis_food_card_gato_page",
+        "analysis_food_card_perro_selected",
+        "analysis_food_card_gato_selected",
     ]
 
     prefixes = [
