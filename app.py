@@ -474,7 +474,7 @@ with tabs[0]:
                 key="nombre_mascota",
             )
 
-        _especie_anterior = st.session_state.get("_last_especie_mascota")
+    _especie_anterior = st.session_state.get("_last_especie_mascota")
         especie = st.selectbox(
             "Especie",
             ["perro", "gato"],
