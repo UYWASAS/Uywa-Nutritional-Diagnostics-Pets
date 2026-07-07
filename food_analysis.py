@@ -382,6 +382,57 @@ def _get_energy_source_options(edited_food_data: dict, energy: dict, safe_key: s
     return fuente_me, me_formula_kcal_100g, me_formula_kcal_100g, me_manufacturer_kcal_100g, me_inferred_kcal_100g
 
 
+def reset_food_analysis_state_on_species_change(species: str) -> None:
+    species_norm = normalize_species(species)
+    last_species = st.session_state.get("_food_analysis_last_species")
+
+    if last_species is None:
+        st.session_state["_food_analysis_last_species"] = species_norm
+        return
+
+    if last_species == species_norm:
+        return
+
+    st.session_state["_food_analysis_last_species"] = species_norm
+
+    exact_keys = [
+        "analysis_food_selector_card",
+        "analysis_food_card_page",
+        "food_search_input",
+        "alimento_seleccionado",
+        "food_name",
+        "analysis_food_name_edited",
+        "analysis_food_data_edited",
+        "analysis_food_proximal_sum",
+        "me_alimento_actual",
+        "energia_aportada_actual",
+        "fuente_me_actual",
+        "me_formula_uywa_actual",
+        "me_manufacturer_actual",
+        "me_inferred_manufacturer_actual",
+        "cobertura_energia_actual",
+        "gramos_recomendados_actual",
+        "cobertura_proteina_actual",
+        "cobertura_grasa_actual",
+    ]
+
+    prefixes = [
+        "comp_data_",
+        "comp_editor_",
+        "gramos_alimento_",
+        "fuente_me_",
+        "analysis_food_card_select_",
+    ]
+
+    for key in exact_keys:
+        st.session_state.pop(key, None)
+
+    for key in list(st.session_state.keys()):
+        if any(key.startswith(prefix) for prefix in prefixes):
+            del st.session_state[key]
+
+    st.rerun()
+
 def show_food_analysis():
     inject_uywa_theme()
 
@@ -393,19 +444,21 @@ def show_food_analysis():
     )
 
     especie = st.session_state.get("especie_mascota", "")
+    especie_norm = normalize_species(especie)
 
-    if especie:
-        st.caption(f"Especie activa: **{especie.capitalize()}**")
+    reset_food_analysis_state_on_species_change(especie_norm)
 
-    alimentos_disponibles = get_foods_by_species(especie)
+    if especie_norm:
+        st.caption(f"Especie activa: **{especie_norm.capitalize()}**")
 
+    alimentos_disponibles = get_foods_by_species(especie_norm)
     col_search, col_info = st.columns([3, 1])
 
     with col_search:
         query_busqueda = st.text_input(
             "🔍 Busca un alimento (nombre o marca):",
             placeholder="Ej: Pro Plan, Purina, Royal Canin...",
-            key="food_search_input",
+            key=f"food_search_input_{especie_norm}",
         )
 
     with col_info:
@@ -424,7 +477,7 @@ def show_food_analysis():
     food_name = render_food_selector_cards(
         alimentos_filtrados,
         foods=FOODS,
-        key_prefix="analysis_food_card",
+        key_prefix=f"analysis_food_card_{especie_norm}",
         page_size=6,
     )
 
