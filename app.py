@@ -226,7 +226,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-nav_cols = st.columns(len(NAV_ITEMS))
+nav_cols = st.columns(len(PAGINAS))
 
 for col, (page_key, icon, label) in zip(nav_cols, NAV_ITEMS):
     is_active = st.session_state["pagina_activa_principal"] == page_key
