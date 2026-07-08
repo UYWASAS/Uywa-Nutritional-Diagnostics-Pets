@@ -10,7 +10,6 @@ from food_database import (
     calculate_energy,
     calculate_ena,
     calculate_energy_breakdown,
-    get_food_names,
     get_food_data,
     infer_me_from_manufacturer_reference,
 )
@@ -47,9 +46,38 @@ def normalize_species(value):
     return value
 
 
+def _resolve_active_species() -> str:
+    """
+    Resuelve la especie activa con fallback robusto:
+    1) analysis_species_active (seteada en analysis_page)
+    2) profile.mascota.especie
+    3) especie_mascota (compatibilidad legacy)
+    4) perro (default)
+    """
+    species = st.session_state.get("analysis_species_active")
+
+    if not species:
+        profile = st.session_state.get("profile", {}) or {}
+        mascota = profile.get("mascota", {}) or {}
+        species = mascota.get("especie")
+
+    if not species:
+        species = st.session_state.get("especie_mascota", "perro")
+
+    species_norm = normalize_species(species)
+    if species_norm not in ("perro", "gato"):
+        species_norm = "perro"
+
+    # Mantener sync para compatibilidad con módulos legacy
+    st.session_state["analysis_species_active"] = species_norm
+    st.session_state["especie_mascota"] = species_norm
+
+    return species_norm
+
+
 def get_foods_by_species(species: str) -> list[str]:
     if not species or str(species).strip() == "":
-        return sorted(list(FOODS.keys()))
+        return sorted(list(FOODS.keys()), key=get_food_display_name)
 
     species_norm = normalize_species(species)
     alimentos_filtrados = []
@@ -195,6 +223,8 @@ def generar_interpretacion_alimento(nombre, cobertura, aporte, mer, gramos_act, 
 def build_energy_breakdown_table_with_edits(selected_foods, edited_values_map=None):
     rows = []
 
+    active_species = _resolve_active_species()
+
     for fname in selected_foods:
         fdata = get_food_data(fname)
 
@@ -206,7 +236,7 @@ def build_energy_breakdown_table_with_edits(selected_foods, edited_values_map=No
         if edited_values_map and fname in edited_values_map:
             edited_fdata.update(edited_values_map[fname])
 
-        species_food = edited_fdata.get("species", st.session_state.get("especie_mascota", "perro"))
+        species_food = normalize_species(edited_fdata.get("species", active_species))
         bd = calculate_energy_breakdown(edited_fdata, species=species_food)
 
         rows.append(
@@ -227,6 +257,8 @@ def build_energy_breakdown_table_with_edits(selected_foods, edited_values_map=No
 def plot_energy_breakdown_stacked_with_edits(selected_foods, edited_values_map=None):
     rows = []
 
+    active_species = _resolve_active_species()
+
     for fname in selected_foods:
         fdata = get_food_data(fname)
 
@@ -238,7 +270,7 @@ def plot_energy_breakdown_stacked_with_edits(selected_foods, edited_values_map=N
         if edited_values_map and fname in edited_values_map:
             edited_fdata.update(edited_values_map[fname])
 
-        species_food = edited_fdata.get("species", st.session_state.get("especie_mascota", "perro"))
+        species_food = normalize_species(edited_fdata.get("species", active_species))
         bd = calculate_energy_breakdown(edited_fdata, species=species_food)
 
         rows.append(
@@ -254,6 +286,8 @@ def plot_energy_breakdown_stacked_with_edits(selected_foods, edited_values_map=N
 
 
 def show_energy_breakdown_cards(selected_foods):
+    active_species = _resolve_active_species()
+
     for row_start in range(0, len(selected_foods), 3):
         cols = st.columns(3)
 
@@ -263,7 +297,7 @@ def show_energy_breakdown_cards(selected_foods):
             if not fdata:
                 continue
 
-            species_food = fdata.get("species", st.session_state.get("especie_mascota", "perro"))
+            species_food = normalize_species(fdata.get("species", active_species))
             bd = calculate_energy_breakdown(fdata, species=species_food)
 
             with cols[i]:
@@ -333,13 +367,10 @@ def _get_energy_source_options(edited_food_data: dict, energy: dict, safe_key: s
     me_manufacturer_kcal_kg = float(edited_food_data.get("ME_manufacturer_kcal_kg", 0.0) or 0.0)
     me_manufacturer_kcal_100g = me_manufacturer_kcal_kg / 10.0 if me_manufacturer_kcal_kg > 0 else 0.0
 
-    manufacturer_g_day_ref = float(edited_food_data.get("manufacturer_g_day_ref", 0.0) or 0.0)
-
     me_inferred_kcal_kg = infer_me_from_manufacturer_reference(
-        manufacturer_g_day_ref,
+        float(edited_food_data.get("manufacturer_g_day_ref", 0.0) or 0.0),
         species=edited_food_data.get("species", "perro"),
     )
-    
     me_inferred_kcal_100g = me_inferred_kcal_kg / 10.0 if me_inferred_kcal_kg > 0 else 0.0
 
     opciones_me = ["Fórmula Uywa"]
@@ -384,15 +415,6 @@ def _get_energy_source_options(edited_food_data: dict, energy: dict, safe_key: s
 
 
 def reset_food_analysis_state_on_species_change(species: str) -> None:
-    """
-    Limpia solo estado obsoleto de análisis cuando cambia la especie.
-
-    Importante:
-    - No llama st.rerun().
-    - No dibuja nada.
-    - Se ejecuta antes de crear widgets.
-    - Las keys principales del análisis quedan separadas por especie.
-    """
     species_norm = normalize_species(species)
     last_species = st.session_state.get("_food_analysis_last_species")
 
@@ -406,12 +428,9 @@ def reset_food_analysis_state_on_species_change(species: str) -> None:
     st.session_state["_food_analysis_last_species"] = species_norm
 
     exact_keys = [
-        # keys antiguas no separadas por especie
         "analysis_food_selector_card",
         "analysis_food_card_page",
         "food_search_input",
-
-        # estado exportable del análisis anterior
         "alimento_seleccionado",
         "food_name",
         "analysis_food_name_edited",
@@ -430,13 +449,10 @@ def reset_food_analysis_state_on_species_change(species: str) -> None:
     ]
 
     prefixes = [
-        # limpia editores/gramajes/fuentes de la especie previa
         "comp_data_",
         "comp_editor_",
         "gramos_alimento_",
         "fuente_me_",
-
-        # limpia navegación anterior de tarjetas
         "analysis_food_card_",
     ]
 
@@ -447,11 +463,11 @@ def reset_food_analysis_state_on_species_change(species: str) -> None:
         if any(key.startswith(prefix) for prefix in prefixes):
             del st.session_state[key]
 
+
 def show_food_analysis():
     inject_uywa_theme()
 
-    especie = st.session_state.get("especie_mascota", "")
-    especie_norm = normalize_species(especie)
+    especie_norm = _resolve_active_species()
     scope_key = especie_norm or "global"
 
     reset_food_analysis_state_on_species_change(especie_norm)
@@ -543,7 +559,7 @@ def show_food_analysis():
         )
 
     ena = calculate_ena(edited_food_data)
-    species_energy = edited_food_data.get("species", st.session_state.get("especie_mascota", "perro"))
+    species_energy = normalize_species(edited_food_data.get("species", especie_norm))
 
     energy = calculate_energy(
         edited_food_data,
@@ -587,7 +603,11 @@ def show_food_analysis():
 
     me_total_kcal = (me_por_100g / 100.0) * gramos_input
 
+    # Compatibilidad doble para MER/requerimientos
     mer_animal = st.session_state.get("energia_actual", None)
+    if mer_animal is None:
+        mer_animal = st.session_state.get("mer_final", None)
+
     gramos_pb = (edited_food_data.get("PB", 0) / 100.0) * gramos_input
     gramos_ee = (edited_food_data.get("EE", 0) / 100.0) * gramos_input
 
@@ -715,9 +735,9 @@ def show_food_analysis():
             species_label = "Perro"
 
         st.markdown(f"**Ecuaciones FEDIAF/NRC — {species_label}:**")
-        st.markdown(f"1. `GE = (5.7×PB) + (9.4×EE) + [4.1×(ENA+FC)]`")
+        st.markdown("1. `GE = (5.7×PB) + (9.4×EE) + [4.1×(ENA+FC)]`")
         st.markdown(f"2. `{de_formula_text}`")
-        st.markdown(f"3. `DE = GE × (%DE/100)`")
+        st.markdown("3. `DE = GE × (%DE/100)`")
         st.markdown(f"4. `{me_formula_text}`")
 
         energy_calc_rows = [
