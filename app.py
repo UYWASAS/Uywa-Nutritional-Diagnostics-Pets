@@ -226,20 +226,33 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-nav_cols = st.columns(len(PAGINAS))
+NAV_ITEMS = [
+    ("Perfil de Mascota", "🐾", "Perfil de Mascota"),
+    ("Análisis", "🔬", "Análisis"),
+    ("Comparador", "⚖️", "Comparador"),
+    ("Resumen y Exportar", "📋", "Resumen y Exportar"),
+    ("Seguimiento del Paciente", "📈", "Seguimiento del Paciente"),
+]
 
+if "pagina_activa_principal" not in st.session_state:
+    st.session_state["pagina_activa_principal"] = NAV_ITEMS[0][0]
+
+valid_pages = [page_key for page_key, _, _ in NAV_ITEMS]
+if st.session_state["pagina_activa_principal"] not in valid_pages:
+    st.session_state["pagina_activa_principal"] = NAV_ITEMS[0][0]
+
+nav_cols = st.columns(len(NAV_ITEMS))
 for col, (page_key, icon, label) in zip(nav_cols, NAV_ITEMS):
-    is_active = st.session_state["pagina_activa_principal"] == page_key
-
     with col:
+        is_active = st.session_state["pagina_activa_principal"] == page_key
+        btn_label = f"{icon} {label}"
         if st.button(
-            f"{icon} {label}",
+            btn_label,
             key=f"nav_{page_key}",
             use_container_width=True,
             type="primary" if is_active else "secondary",
         ):
             st.session_state["pagina_activa_principal"] = page_key
-            st.rerun()
 
 pagina_activa = st.session_state["pagina_activa_principal"]
 
