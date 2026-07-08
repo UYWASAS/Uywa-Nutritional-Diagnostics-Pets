@@ -189,14 +189,57 @@ PAGINAS = [
     "Seguimiento del Paciente",
 ]
 
-pagina_activa = st.radio(
-    "Navegación principal",
-    PAGINAS,
-    horizontal=True,
-    label_visibility="collapsed",
-    key="pagina_activa_principal",
+NAV_ITEMS = [
+    ("Perfil de Mascota", "🐶", "Perfil"),
+    ("Análisis", "🍽️", "Análisis"),
+    ("Comparador", "⚖️", "Comparador"),
+    ("Resumen y Exportar", "📄", "Informe"),
+    ("Seguimiento del Paciente", "📈", "Seguimiento"),
+]
+
+if "pagina_activa_principal" not in st.session_state:
+    st.session_state["pagina_activa_principal"] = "Perfil de Mascota"
+
+st.markdown(
+    """
+    <style>
+    div[data-testid="stHorizontalBlock"] div[data-testid="column"] button {
+        min-height: 58px !important;
+        border-radius: 16px !important;
+        font-size: 1rem !important;
+        font-weight: 800 !important;
+        border: 1px solid #DDE7F3 !important;
+        background: rgba(255,255,255,0.82) !important;
+        color: #0F172A !important;
+        box-shadow: 0 8px 20px rgba(15,23,42,0.06) !important;
+    }
+    div[data-testid="stHorizontalBlock"] div[data-testid="column"] button:hover {
+        border-color: #2563EB !important;
+        transform: translateY(-1px);
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
 )
 
+nav_cols = st.columns(len(NAV_ITEMS))
+
+for col, (page_key, icon, label) in zip(nav_cols, NAV_ITEMS):
+    is_active = st.session_state["pagina_activa_principal"] == page_key
+
+    with col:
+        if st.button(
+            f"{icon} {label}",
+            key=f"nav_{page_key}",
+            use_container_width=True,
+            type="primary" if is_active else "secondary",
+        ):
+            st.session_state["pagina_activa_principal"] = page_key
+            st.rerun()
+
+pagina_activa = st.session_state["pagina_activa_principal"]
+
+st.markdown("---")
 if pagina_activa == "Perfil de Mascota":
     show_profile_page(
         profile=profile,
