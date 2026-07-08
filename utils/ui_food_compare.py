@@ -25,7 +25,7 @@ import pandas as pd
 import streamlit as st
 
 from utils.ui_cards import render_section_title, render_kpi_card, render_source_chip_group
-from utils.ui_theme import NUTRIENT_COLORS, COLORS
+from utils.ui_theme import NUTRIENT_COLORS
 from utils.ui_food_charts import (
     plot_compare_radar,
     plot_compare_energy_stacked,
@@ -75,6 +75,15 @@ def _short_text(value: str, max_len: int = 42) -> str:
     if len(value) <= max_len:
         return value
     return value[: max_len - 1].rstrip() + "…"
+
+
+def _normalize_species(value: str) -> str:
+    v = str(value or "").strip().lower()
+    if v in ("perro", "canino", "canine", "dog"):
+        return "perro"
+    if v in ("gato", "felino", "feline", "cat"):
+        return "gato"
+    return v
 
 
 def _parse_key_parts(food_name: str) -> dict:
@@ -214,25 +223,20 @@ def get_package_image_path(food_data: dict) -> Path | None:
     ]
 
     valid_exts = [".png", ".jpg", ".jpeg", ".webp"]
-
     candidates = []
 
-    # 1. Nombre exacto como viene del Excel
     for folder in search_dirs:
         candidates.append(folder / image_name)
 
-    # 2. Si viene sin extensión, probar extensiones comunes
     if Path(image_name).suffix == "":
         for folder in search_dirs:
             for ext in valid_exts:
                 candidates.append(folder / f"{image_name}{ext}")
 
-    # 3. Búsqueda exacta
     for path in candidates:
         if path.exists() and path.is_file():
             return path
 
-    # 4. Búsqueda tolerante a mayúsculas/minúsculas
     image_stem = Path(image_name).stem.lower()
     image_suffix = Path(image_name).suffix.lower()
 
@@ -260,31 +264,74 @@ def get_package_image_path(food_data: dict) -> Path | None:
 def infer_me_from_manufacturer_dog_10kg(grams_day: float) -> float:
     """
     Estima ME kcal/kg desde gramaje recomendado para perro adulto de 10 kg.
-
-    Modelo:
-        RER = 70 × peso^0.75
-        MER perro adulto entero = RER × 1.8
-        ME kcal/kg = MER / gramos_día × 1000
     """
     grams_day = _safe_float(grams_day, 0.0)
-
     if grams_day <= 0:
         return 0.0
 
     peso_ref = 10.0
     rer = 70.0 * (peso_ref ** 0.75)
     mer = rer * 1.8
-
     return round((mer / grams_day) * 1000.0, 2)
 
 
-def get_me_for_compare(data: dict, energy: dict, energy_source: str) -> tuple[float | None, str]:
+def infer_me_from_manufacturer_cat_5kg(grams_day: float) -> float:
+    """
+    Estima ME kcal/kg desde gramaje recomendado para gato adulto de 5 kg.
+    """
+    grams_day = _safe_float(grams_day, 0.0)
+    if grams_day <= 0:
+        return 0.0
+
+    peso_ref = 5.0
+    rer = 70.0 * (peso_ref ** 0.75)
+    mer = rer * 1.2
+    return round((mer / grams_day) * 1000.0, 2)
+
+
+def _get_first_positive(data: dict, candidate_keys: list[str]) -> float:
+    for k in candidate_keys:
+        v = _safe_float(data.get(k, 0.0), 0.0)
+        if v > 0:
+            return v
+    return 0.0
+
+
+def _manufacturer_grams_ref(data: dict, species: str) -> float:
+    """
+    Obtiene gramaje de referencia del fabricante con tolerancia a múltiples nombres de campo.
+    """
+    species_norm = _normalize_species(species)
+
+    dog_keys = [
+        "manufacturer_g_day_dog_10kg",
+        "manufacturer_g_day_ref_dog_10kg",
+        "manufacturer_g_day_ref_dog",
+        "manufacturer_g_day_ref",
+        "dog_10kg_g_day",
+        "g_day_dog_10kg",
+    ]
+
+    cat_keys = [
+        "manufacturer_g_day_cat_5kg",
+        "manufacturer_g_day_ref_cat_5kg",
+        "manufacturer_g_day_ref_cat",
+        "manufacturer_g_day_ref",
+        "cat_5kg_g_day",
+        "g_day_cat_5kg",
+    ]
+
+    if species_norm == "gato":
+        return _get_first_positive(data, cat_keys)
+
+    return _get_first_positive(data, dog_keys)
+
+
+def get_me_for_compare(data: dict, energy: dict, energy_source: str, species: str) -> tuple[float | None, str]:
     """
     Retorna ME en kcal/100g según fuente seleccionada.
-
-    Si la fuente seleccionada no existe para el alimento, retorna:
-        (None, motivo)
     """
+    species_norm = _normalize_species(species)
     me_formula_100g = _safe_float(energy.get("ME", 0.0), 0.0)
 
     if energy_source == ENERGY_SOURCE_FORMULA:
@@ -302,14 +349,24 @@ def get_me_for_compare(data: dict, energy: dict, energy_source: str) -> tuple[fl
         return None, "sin ME declarada por fabricante"
 
     if energy_source == ENERGY_SOURCE_INFERRED:
-        grams_ref = _safe_float(data.get("manufacturer_g_day_dog_10kg", 0.0), 0.0)
-        me_inferred_kg = infer_me_from_manufacturer_dog_10kg(grams_ref)
+        grams_ref = _manufacturer_grams_ref(data, species_norm)
+
+        if grams_ref <= 0:
+            if species_norm == "gato":
+                return None, "sin gramaje de fabricante para gato de 5 kg"
+            return None, "sin gramaje de fabricante para perro de 10 kg"
+
+        if species_norm == "gato":
+            me_inferred_kg = infer_me_from_manufacturer_cat_5kg(grams_ref)
+        else:
+            me_inferred_kg = infer_me_from_manufacturer_dog_10kg(grams_ref)
+
         me_inferred_100g = me_inferred_kg / 10.0 if me_inferred_kg > 0 else 0.0
 
         if me_inferred_100g > 0:
             return me_inferred_100g, ""
 
-        return None, "sin gramaje de fabricante para perro de 10 kg"
+        return None, "no fue posible inferir ME desde gramaje fabricante"
 
     return None, "fuente energética no reconocida"
 
@@ -333,9 +390,11 @@ def build_compare_dataframe(
     rows = []
     excluded = []
 
+    species_global = _normalize_species(species)
+
     for food_name in selected_foods:
         data = foods.get(food_name, {}) or {}
-        species_food = data.get("species", species)
+        species_food = _normalize_species(data.get("species", species_global) or species_global)
 
         try:
             energy = calculate_energy_func(data, species=species_food)
@@ -348,7 +407,7 @@ def build_compare_dataframe(
             )
             continue
 
-        me, reason = get_me_for_compare(data, energy, energy_source)
+        me, reason = get_me_for_compare(data, energy, energy_source, species_food)
 
         if me is None or me <= 0:
             excluded.append(
@@ -433,51 +492,6 @@ def render_excluded_foods(excluded_foods: list[dict], energy_source: str) -> Non
         excluded_df = pd.DataFrame(excluded_foods)
         st.dataframe(excluded_df, use_container_width=True, hide_index=True)
 
-def get_package_image_path(food_data: dict) -> Path | None:
-    image_name = _clean(food_data.get("package_image"))
-
-    if not image_name:
-        return None
-
-    search_dirs = [
-        Path("assets") / "food_images" / "packages",
-        Path("assets") / "food_images" / "brands",
-    ]
-
-    valid_exts = [".png", ".jpg", ".jpeg", ".webp"]
-    candidates = []
-
-    for folder in search_dirs:
-        candidates.append(folder / image_name)
-
-    if Path(image_name).suffix == "":
-        for folder in search_dirs:
-            for ext in valid_exts:
-                candidates.append(folder / f"{image_name}{ext}")
-
-    for path in candidates:
-        if path.exists() and path.is_file():
-            return path
-
-    image_stem = Path(image_name).stem.lower()
-    image_suffix = Path(image_name).suffix.lower()
-
-    for folder in search_dirs:
-        if not folder.exists():
-            continue
-
-        for file in folder.iterdir():
-            if not file.is_file():
-                continue
-
-            same_stem = file.stem.lower() == image_stem
-            same_suffix = image_suffix == "" or file.suffix.lower() == image_suffix
-
-            if same_stem and same_suffix:
-                return file
-
-    return None
-
 
 def render_package_image(food_data: dict, size: int = 96) -> None:
     image_path = get_package_image_path(food_data)
@@ -505,6 +519,7 @@ def render_package_image(food_data: dict, size: int = 96) -> None:
         """,
         unsafe_allow_html=True,
     )
+
 
 def render_compare_summary_cards(df: pd.DataFrame, mer: float) -> None:
     if df.empty:
