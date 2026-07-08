@@ -189,16 +189,20 @@ PAGINAS = [
     "Seguimiento del Paciente",
 ]
 
-NAV_ITEMS = [
-    ("Perfil de Mascota", "🐶", "Perfil"),
-    ("Análisis", "🍽️", "Análisis"),
-    ("Comparador", "⚖️", "Comparador"),
-    ("Resumen y Exportar", "📄", "Informe"),
-    ("Seguimiento del Paciente", "📈", "Seguimiento"),
-]
-
 if "pagina_activa_principal" not in st.session_state:
-    st.session_state["pagina_activa_principal"] = "Perfil de Mascota"
+    st.session_state["pagina_activa_principal"] = PAGINAS[0]
+
+if st.session_state["pagina_activa_principal"] not in PAGINAS:
+    st.session_state["pagina_activa_principal"] = PAGINAS[0]
+
+pagina_activa = st.radio(
+    "Navegación principal",
+    PAGINAS,
+    index=PAGINAS.index(st.session_state["pagina_activa_principal"]),
+    horizontal=True,
+    label_visibility="collapsed",
+    key="pagina_activa_principal",
+)
 
 st.markdown(
     """
