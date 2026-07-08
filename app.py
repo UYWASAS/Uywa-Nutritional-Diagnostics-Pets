@@ -164,19 +164,23 @@ if not user:
 
 render_sidebar(user)
 
-profile = load_profile(user) or {}
-profile.setdefault(
-    "mascota",
-    {
-        "nombre": "",
-        "especie": "perro",
-        "edad": 1.0,
-        "peso": 12.0,
-        "etapa": "adulto",
-        "bcs": 5,
-    },
-)
-st.session_state["profile"] = profile
+# Cargar profile solo una vez por sesión (evita rebote de pestañas por sobrescritura en cada rerun)
+if "profile" not in st.session_state:
+    profile = load_profile(user) or {}
+    profile.setdefault(
+        "mascota",
+        {
+            "nombre": "",
+            "especie": "perro",
+            "edad": 1.0,
+            "peso": 12.0,
+            "etapa": "adulto",
+            "bcs": 5,
+        },
+    )
+    st.session_state["profile"] = profile
+else:
+    profile = st.session_state["profile"]
 
 render_app_title()
 
@@ -212,14 +216,12 @@ NAV_ITEMS = [
 
 valid_pages = [page_key for page_key, _, _ in NAV_ITEMS]
 
-# Estado único de navegación principal
 if "pagina_activa_principal" not in st.session_state:
     st.session_state["pagina_activa_principal"] = NAV_ITEMS[0][0]
 
 if st.session_state["pagina_activa_principal"] not in valid_pages:
     st.session_state["pagina_activa_principal"] = NAV_ITEMS[0][0]
 
-# Menú superior (solo una vez)
 nav_cols = st.columns(len(NAV_ITEMS))
 for col, (page_key, icon, label) in zip(nav_cols, NAV_ITEMS):
     with col:
@@ -231,7 +233,6 @@ for col, (page_key, icon, label) in zip(nav_cols, NAV_ITEMS):
             type="primary" if is_active else "secondary",
         ):
             st.session_state["pagina_activa_principal"] = page_key
-            st.rerun()
 
 pagina_activa = st.session_state["pagina_activa_principal"]
 
