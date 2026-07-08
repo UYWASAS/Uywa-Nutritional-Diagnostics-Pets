@@ -8,11 +8,11 @@ from profile import load_profile, save_profile
 from utils.ui_components import inject_global_css, render_app_title
 from utils.ui_theme import inject_uywa_theme
 
-from pages.profile_page import show_profile_page
-from pages.analysis_page import show_analysis_page
-from pages.compare_page import show_compare_page
-from pages.summary_page import show_summary_page
-from pages.followup_page import show_followup_page
+from uywa_pages.profile_page import show_profile_page
+from uywa_pages.analysis_page import show_analysis_page
+from uywa_pages.compare_page import show_compare_page
+from uywa_pages.summary_page import show_summary_page
+from uywa_pages.followup_page import show_followup_page
 
 
 st.set_page_config(
