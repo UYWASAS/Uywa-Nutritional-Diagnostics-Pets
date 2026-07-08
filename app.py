@@ -178,31 +178,45 @@ profile.setdefault(
 )
 st.session_state["profile"] = profile
 
-
 render_app_title()
 
-PAGINAS = [
-    "Perfil de Mascota",
-    "Análisis",
-    "Comparador",
-    "Resumen y Exportar",
-    "Seguimiento del Paciente",
+NAV_ITEMS = [
+    ("Perfil de Mascota", "🐾", "Perfil de Mascota"),
+    ("Análisis", "🔬", "Análisis"),
+    ("Comparador", "⚖️", "Comparador"),
+    ("Resumen y Exportar", "📋", "Resumen y Exportar"),
+    ("Seguimiento del Paciente", "📈", "Seguimiento del Paciente"),
 ]
 
+PAGINAS = [page_key for page_key, _, _ in NAV_ITEMS]
+
+# Estado único de navegación
 if "pagina_activa_principal" not in st.session_state:
     st.session_state["pagina_activa_principal"] = PAGINAS[0]
 
 if st.session_state["pagina_activa_principal"] not in PAGINAS:
     st.session_state["pagina_activa_principal"] = PAGINAS[0]
 
-pagina_activa = st.radio(
-    "Navegación principal",
-    PAGINAS,
-    index=PAGINAS.index(st.session_state["pagina_activa_principal"]),
-    horizontal=True,
-    label_visibility="collapsed",
-    key="pagina_activa_principal",
-)
+# Botones azules
+nav_cols = st.columns(len(NAV_ITEMS))
+for col, (page_key, icon, label) in zip(nav_cols, NAV_ITEMS):
+    with col:
+        is_active = st.session_state["pagina_activa_principal"] == page_key
+        if st.button(
+            f"{icon} {label}",
+            key=f"nav_btn_{page_key}",
+            use_container_width=True,
+            type="primary" if is_active else "secondary",
+        ):
+            st.session_state["pagina_activa_principal"] = page_key
+            st.rerun()
+
+pagina_activa = st.session_state["pagina_activa_principal"]
+if "pagina_activa_principal" not in st.session_state:
+    st.session_state["pagina_activa_principal"] = PAGINAS[0]
+
+if st.session_state["pagina_activa_principal"] not in PAGINAS:
+    st.session_state["pagina_activa_principal"] = PAGINAS[0]
 
 st.markdown(
     """
