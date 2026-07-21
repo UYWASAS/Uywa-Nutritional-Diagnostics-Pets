@@ -1,16 +1,16 @@
 import streamlit as st
-
 from supabase import Client, create_client
 
 
 def get_supabase() -> Client:
     """
-    Crea y devuelve un cliente de Supabase usando los secretos
+    Devuelve un cliente de Supabase utilizando los Secrets
     configurados en Streamlit Cloud.
     """
+
     try:
-        url = st.secrets["https://olujwxbbqwurylbeijoj.supabase.co"]
-        key = st.secrets["sb_publishable_mFsEw7Bxpms-fgVpTwya5A_ypaEQ8T5"]
+        url = st.secrets["SUPABASE_URL"]
+        key = st.secrets["SUPABASE_KEY"]
 
     except KeyError as exc:
         raise RuntimeError(
@@ -23,4 +23,7 @@ def get_supabase() -> Client:
     if not str(key).strip():
         raise RuntimeError("SUPABASE_KEY está vacío.")
 
-    return create_client(str(url).strip(), str(key).strip())
+    return create_client(
+        str(url).strip(),
+        str(key).strip(),
+    )
