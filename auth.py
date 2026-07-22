@@ -3,7 +3,7 @@ from datetime import date
 
 _DEFAULT_USERS = {
     "demo": {
-        "name": "Demo Uywa",
+        "name": "demo",
         "password": "UywaDemo2026",
         "plan": "Demo",
         "role": "demo",
