@@ -12,7 +12,6 @@ from uywa_core.current_session import (
     get_current_user,
     set_current_user,
 )
-from uywa_core.launcher import render_launcher
 from uywa_core.launcher.launcher_sidebar import (
     render_platform_sidebar,
 )
