@@ -1,1 +1,63 @@
+from __future__ import annotations
 
+
+# ============================================================
+# UYWA PLATFORM — DESIGN TOKENS
+# ============================================================
+
+# Colores corporativos
+COLOR_NAVY = "#17233F"
+COLOR_NAVY_DARK = "#111B32"
+COLOR_NAVY_LIGHT = "#243454"
+
+COLOR_TEAL = "#28777E"
+COLOR_TEAL_DARK = "#1F6066"
+COLOR_TEAL_LIGHT = "#65BEC6"
+
+COLOR_AQUA_SOFT = "#DFF2F3"
+COLOR_AQUA_PALE = "#EFF8F8"
+
+# Fondos
+COLOR_BACKGROUND = "#F4F6FA"
+COLOR_SURFACE = "#FFFFFF"
+COLOR_SURFACE_SOFT = "#F9FAFC"
+
+# Texto
+COLOR_TEXT_PRIMARY = "#17233F"
+COLOR_TEXT_SECONDARY = "#536174"
+COLOR_TEXT_MUTED = "#7C8798"
+COLOR_TEXT_ON_DARK = "#FFFFFF"
+
+# Bordes
+COLOR_BORDER = "#DDE3EC"
+COLOR_BORDER_STRONG = "#CBD3DF"
+
+# Estados
+COLOR_SUCCESS = "#23845F"
+COLOR_SUCCESS_BACKGROUND = "#E7F6EF"
+
+COLOR_WARNING = "#A56A15"
+COLOR_WARNING_BACKGROUND = "#FFF3DC"
+
+COLOR_DANGER = "#B74444"
+COLOR_DANGER_BACKGROUND = "#FCEBEB"
+
+COLOR_DISABLED = "#8A94A3"
+COLOR_DISABLED_BACKGROUND = "#EEF1F5"
+
+# Sombras
+SHADOW_CARD = "0 8px 24px rgba(23, 35, 63, 0.07)"
+SHADOW_CARD_HOVER = "0 14px 34px rgba(23, 35, 63, 0.12)"
+SHADOW_SOFT = "0 4px 16px rgba(23, 35, 63, 0.06)"
+
+# Bordes redondeados
+RADIUS_SMALL = "8px"
+RADIUS_MEDIUM = "12px"
+RADIUS_LARGE = "18px"
+RADIUS_PILL = "999px"
+
+# Tipografía
+FONT_FAMILY = "'Montserrat', 'Segoe UI', Arial, sans-serif"
+
+# Sidebar
+SIDEBAR_WIDTH = "300px"
