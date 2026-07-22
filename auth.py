@@ -9,7 +9,7 @@ _DEFAULT_USERS = {
         "role": "demo",
         "premium": False,
         "active": True,
-        "expires": "2026-07-15",
+        "expires": "2026-08-15",
     },
     "cliente_profesional": {
         "name": "Cliente Profesional",
