@@ -1,367 +1,185 @@
 from __future__ import annotations
 
-import html
-
 import streamlit as st
 
-from uywa_core.current_session import get_current_user
-from uywa_core.launcher.launcher_cards import (
-    inject_launcher_card_styles,
-    render_module_card,
+from services.auth_service import (
+    get_auth_user,
+    sign_in,
+    sign_out,
 )
-from uywa_core.launcher.module_registry import (
-    get_module_by_code,
-    get_platform_modules,
+from uywa_core.current_session import (
+    clear_current_user,
+    get_current_user,
+    set_current_user,
+)
+from uywa_core.launcher import render_launcher
+from uywa_core.launcher.launcher_sidebar import (
+    render_platform_sidebar,
+)
+from uywa_core.services.user_service import (
+    UserServiceError,
+    load_current_user,
+)
+from uywa_core.theme import inject_platform_theme
+
+
+st.set_page_config(
+    page_title="Uywa Platform",
+    page_icon="🐾",
+    layout="wide",
+    initial_sidebar_state="expanded",
 )
 
-
-LAUNCHER_SELECTED_MODULE_KEY = "uywa_selected_module"
-
-
-def initialize_launcher_state() -> None:
-    if LAUNCHER_SELECTED_MODULE_KEY not in st.session_state:
-        st.session_state[LAUNCHER_SELECTED_MODULE_KEY] = None
+inject_platform_theme()
 
 
-def select_module(module_code: str) -> None:
-    st.session_state[LAUNCHER_SELECTED_MODULE_KEY] = (
-        module_code
+def render_login() -> None:
+    """
+    Renderiza el acceso temporal de prueba.
+    """
+
+    left_space, login_column, right_space = st.columns(
+        [1, 1.15, 1]
     )
 
-
-def get_selected_module() -> str | None:
-    value = st.session_state.get(
-        LAUNCHER_SELECTED_MODULE_KEY
-    )
-
-    if not value:
-        return None
-
-    return str(value)
-
-
-def clear_selected_module() -> None:
-    st.session_state[LAUNCHER_SELECTED_MODULE_KEY] = None
-
-
-def _get_display_name() -> str:
-    current_user = get_current_user()
-
-    return str(
-        getattr(current_user, "full_name", None)
-        or getattr(current_user, "name", None)
-        or getattr(current_user, "email", None)
-        or "Usuario"
-    )
-
-
-def _render_launcher_header() -> None:
-    display_name = html.escape(
-        _get_display_name()
-    )
-
-    st.markdown(
-        f"""
-        <div class="uywa-launcher-hero">
-            <div class="uywa-launcher-eyebrow">
-                UYWA PLATFORM
-            </div>
-
-            <h1 class="uywa-launcher-title">
-                Bienvenido, {display_name}
-            </h1>
-
-            <p class="uywa-launcher-subtitle">
-                Selecciona una herramienta para comenzar.
-                Todos tus módulos están organizados en un mismo espacio.
-            </p>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-
-def _render_platform_summary() -> None:
-    current_user = get_current_user()
-
-    role = str(
-        getattr(current_user, "role", None)
-        or "Usuario"
-    )
-
-    plan = str(
-        getattr(current_user, "plan_name", None)
-        or getattr(current_user, "plan_code", None)
-        or "Sin plan asignado"
-    )
-
-    modules = getattr(
-        current_user,
-        "modules",
-        [],
-    )
-
-    enabled_modules = len(modules or [])
-
-    if getattr(current_user, "is_admin", False):
-        access_text = "Acceso administrativo"
-    else:
-        access_text = f"{enabled_modules} módulos habilitados"
-
-    column_1, column_2, column_3 = st.columns(3)
-
-    with column_1:
-        st.metric(
-            "Plan actual",
-            plan,
-        )
-
-    with column_2:
-        st.metric(
-            "Rol",
-            role.replace("_", " ").title(),
-        )
-
-    with column_3:
-        st.metric(
-            "Acceso",
-            access_text,
-        )
-
-
-def _render_module_grid() -> None:
-    current_user = get_current_user()
-    modules = get_platform_modules()
-
-    for row_start in range(0, len(modules), 2):
-        row_modules = modules[
-            row_start : row_start + 2
-        ]
-
-        columns = st.columns(
-            2,
-            gap="large",
-        )
-
-        for column_index, module in enumerate(
-            row_modules
-        ):
-            with columns[column_index]:
-                selected_module = render_module_card(
-                    module=module,
-                    current_user=current_user,
-                    column_key=(
-                        f"{row_start}_{column_index}"
-                    ),
-                )
-
-                if selected_module:
-                    select_module(selected_module)
-                    st.rerun()
-
-
-def _render_selected_module_placeholder(
-    selected_module_code: str,
-) -> None:
-    module = get_module_by_code(
-        selected_module_code
-    )
-
-    if module is None:
-        st.error(
-            "El módulo seleccionado no está registrado."
-        )
-
-        if st.button(
-            "← Regresar a Uywa Platform",
-            use_container_width=True,
-        ):
-            clear_selected_module()
-            st.rerun()
-
-        return
-
-    st.markdown(
-        f"""
-        <div class="uywa-selected-module-header">
-            <div class="uywa-selected-module-icon">
-                {html.escape(module.icon)}
-            </div>
-
-            <div>
-                <div class="uywa-selected-module-label">
-                    MÓDULO SELECCIONADO
-                </div>
-
-                <h1>
-                    {html.escape(module.title)}
+    with login_column:
+        st.markdown(
+            """
+            <div style="
+                text-align:center;
+                margin-bottom:1.5rem;
+            ">
+                <h1 style="margin-bottom:0.4rem;">
+                    Acceso a Uywa
                 </h1>
-
-                <p>
-                    {html.escape(module.description)}
+                <p style="margin-top:0;">
+                    Ingresa tus credenciales para continuar.
                 </p>
             </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+            """,
+            unsafe_allow_html=True,
+        )
 
-    st.success(
-        "La selección del módulo funciona correctamente."
-    )
+        with st.form("launcher_login_form"):
+            email = st.text_input(
+                "Correo electrónico",
+                placeholder="usuario@correo.com",
+            )
 
-    st.info(
-        "En la siguiente etapa conectaremos esta pantalla con "
-        "la aplicación real de Uywa Pet Nutrition."
-    )
+            password = st.text_input(
+                "Contraseña",
+                type="password",
+            )
 
-    if st.button(
-        "← Regresar a Uywa Platform",
-        use_container_width=True,
-    ):
-        clear_selected_module()
+            submitted = st.form_submit_button(
+                "Iniciar sesión",
+                use_container_width=True,
+            )
+
+        if not submitted:
+            return
+
+        with st.spinner(
+            "Verificando credenciales..."
+        ):
+            result = sign_in(
+                email=email,
+                password=password,
+            )
+
+        if not result.get("success"):
+            st.error(
+                result.get(
+                    "message",
+                    "No fue posible iniciar sesión.",
+                )
+            )
+            return
+
+        auth_user = result.get("user")
+
+        if auth_user is None:
+            st.error(
+                "No se recuperaron los datos del usuario."
+            )
+            return
+
+        try:
+            platform_user = load_current_user(
+                auth_user
+            )
+
+            set_current_user(
+                platform_user
+            )
+
+        except UserServiceError as exc:
+            clear_current_user()
+            st.error(str(exc))
+            return
+
+        except Exception as exc:
+            clear_current_user()
+
+            st.error(
+                "No fue posible cargar la cuenta "
+                f"de Uywa Platform: {exc}"
+            )
+            return
+
         st.rerun()
 
 
-def inject_launcher_page_styles() -> None:
-    st.markdown(
-        """
-        <style>
-            .uywa-launcher-hero {
-                position: relative;
-                padding: 2rem 2.1rem;
-                margin-bottom: 1.5rem;
-                border-radius: 20px;
-                background:
-                    linear-gradient(
-                        130deg,
-                        #17233F 0%,
-                        #243454 60%,
-                        #28777E 120%
-                    );
-                box-shadow:
-                    0 12px 32px rgba(23, 35, 63, 0.16);
-                overflow: hidden;
-            }
+def restore_platform_user() -> None:
+    """
+    Restaura el usuario de la plataforma cuando existen tokens.
+    """
 
-            .uywa-launcher-hero::after {
-                content: "";
-                position: absolute;
-                top: -100px;
-                right: -80px;
-                width: 260px;
-                height: 260px;
-                border-radius: 50%;
-                background:
-                    rgba(101, 190, 198, 0.14);
-            }
+    current_user = get_current_user()
 
-            .uywa-launcher-eyebrow {
-                position: relative;
-                z-index: 1;
-                margin-bottom: 0.65rem;
-                color: #65BEC6;
-                font-size: 0.72rem;
-                font-weight: 800;
-                letter-spacing: 0.14em;
-            }
+    if getattr(
+        current_user,
+        "authenticated",
+        False,
+    ):
+        return
 
-            .uywa-launcher-title {
-                position: relative;
-                z-index: 1;
-                margin: 0;
-                color: #FFFFFF;
-                font-size: clamp(
-                    1.8rem,
-                    4vw,
-                    2.7rem
-                );
-                font-weight: 800;
-            }
+    auth_user = get_auth_user()
 
-            .uywa-launcher-subtitle {
-                position: relative;
-                z-index: 1;
-                max-width: 720px;
-                margin: 0.8rem 0 0 0;
-                color: rgba(255, 255, 255, 0.78);
-                font-size: 0.96rem;
-                line-height: 1.65;
-            }
+    if auth_user is None:
+        return
 
-            .uywa-section-heading {
-                margin-top: 2rem;
-                margin-bottom: 1rem;
-            }
+    try:
+        platform_user = load_current_user(
+            auth_user
+        )
 
-            .uywa-section-heading h2 {
-                margin-bottom: 0.25rem;
-            }
+        set_current_user(
+            platform_user
+        )
 
-            .uywa-section-heading p {
-                margin-top: 0;
-                color: #7C8798;
-            }
+    except Exception:
+        clear_current_user()
 
-            .uywa-selected-module-header {
-                display: flex;
-                align-items: flex-start;
-                gap: 1.4rem;
-                padding: 2rem;
-                margin-bottom: 1.4rem;
-                border: 1px solid #DDE3EC;
-                border-radius: 20px;
-                background: #FFFFFF;
-                box-shadow:
-                    0 8px 24px rgba(23, 35, 63, 0.08);
-            }
 
-            .uywa-selected-module-icon {
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                flex: 0 0 70px;
-                width: 70px;
-                height: 70px;
-                border-radius: 18px;
-                background: #EFF8F8;
-                font-size: 2.4rem;
-            }
+def process_logout() -> None:
+    """
+    Cierra la sesión remota y limpia la sesión local.
+    """
 
-            .uywa-selected-module-label {
-                color: #28777E;
-                font-size: 0.7rem;
-                font-weight: 800;
-                letter-spacing: 0.12em;
-            }
+    sign_out()
+    clear_current_user()
 
-            .uywa-selected-module-header h1 {
-                margin: 0.3rem 0 0.45rem 0;
-            }
-
-            .uywa-selected-module-header p {
-                margin: 0;
-            }
-
-            @media (max-width: 700px) {
-                .uywa-launcher-hero {
-                    padding: 1.5rem;
-                }
-
-                .uywa-selected-module-header {
-                    flex-direction: column;
-                }
-            }
-        </style>
-        """,
-        unsafe_allow_html=True,
+    st.session_state.pop(
+        "uywa_selected_module",
+        None,
     )
 
+    st.rerun()
 
-def render_launcher() -> str | None:
-    initialize_launcher_state()
-    inject_launcher_card_styles()
-    inject_launcher_page_styles()
+
+def main() -> None:
+    restore_platform_user()
 
     current_user = get_current_user()
 
@@ -370,45 +188,20 @@ def render_launcher() -> str | None:
         "authenticated",
         False,
     ):
-        st.error(
-            "No existe un usuario autenticado."
-        )
-        return None
+        render_login()
+        return
 
-    if not getattr(
-        current_user,
-        "active",
-        False,
-    ):
-        st.warning(
-            "El perfil está inactivo. Contacta al "
-            "administrador de la plataforma."
-        )
-        return None
-
-    selected_module = get_selected_module()
-
-    if selected_module:
-        _render_selected_module_placeholder(
-            selected_module
-        )
-        return selected_module
-
-    _render_launcher_header()
-    _render_platform_summary()
-
-    st.markdown(
-        """
-        <div class="uywa-section-heading">
-            <h2>Aplicaciones</h2>
-            <p>
-                Herramientas disponibles dentro de tu cuenta.
-            </p>
-        </div>
-        """,
-        unsafe_allow_html=True,
+    logout_clicked = render_platform_sidebar(
+        current_user=current_user,
+        logo_path="assets/logo.png",
     )
 
-    _render_module_grid()
+    if logout_clicked:
+        process_logout()
+        return
 
-    return None
+    render_launcher()
+
+
+if __name__ == "__main__":
+    main()
