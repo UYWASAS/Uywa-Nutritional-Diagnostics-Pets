@@ -12,7 +12,7 @@ from uywa_core.current_session import (
     get_current_user,
     set_current_user,
 )
-from uywa_core.launcher import render_launcher
+from uywa_core.launcher.launcher_page import render_launcher
 from uywa_core.services.user_service import (
     UserServiceError,
     load_current_user,
