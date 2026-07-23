@@ -51,19 +51,42 @@ def inject_platform_theme() -> None:
 
             html,
             body,
-            [class*="css"],
-            [class*="st-"],
-            button,
+            p,
+            h1,
+            h2,
+            h3,
+            h4,
+            h5,
+            h6,
+            label,
             input,
             textarea,
-            select {{
-                font-family: {FONT_FAMILY};
-            }}
+            select,
+            button {
+                font-family: 'Montserrat', 'Segoe UI', Arial, sans-serif;
+            }
 
             html,
             body {{
                 color: {COLOR_TEXT_PRIMARY};
             }}
+            .material-symbols-rounded,
+        .material-symbols-outlined,
+        [data-testid="stIconMaterial"],
+        [data-testid="stIconMaterial"] span {
+            font-family: "Material Symbols Rounded" !important;
+            font-weight: normal !important;
+            font-style: normal !important;
+            font-size: inherit;
+            line-height: 1;
+            letter-spacing: normal;
+            text-transform: none;
+            white-space: nowrap;
+            word-wrap: normal;
+            direction: ltr;
+            -webkit-font-feature-settings: "liga";
+            -webkit-font-smoothing: antialiased;
+        }
 
             /* =====================================================
                CONTENEDOR PRINCIPAL
