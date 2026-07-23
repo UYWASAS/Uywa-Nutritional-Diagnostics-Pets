@@ -1,15 +1,10 @@
-from uywa_core.current_session import (
-    get_current_user,
-)
-from uywa_modules.pet_nutrition import (
-    build_platform_user_adapter,
-    render_pet_nutrition,
-)
-
 from __future__ import annotations
+
+import html
 
 import streamlit as st
 
+from uywa_core.current_session import get_current_user
 from uywa_core.launcher.launcher_page import (
     clear_selected_module,
     get_selected_module,
@@ -18,61 +13,21 @@ from uywa_core.launcher.module_registry import (
     get_module_by_code,
 )
 from uywa_core.theme.html_utils import clean_html
+from uywa_modules.pet_nutrition import (
+    build_platform_user_adapter,
+    render_pet_nutrition,
+)
 
 
 def _render_back_button() -> bool:
     """
-    Renderiza el botón para regresar al Launcher.
-
-    Devuelve True cuando el usuario pulsa el botón.
+    Renderiza el botón para volver al Launcher.
     """
 
     return st.button(
         "← Volver a aplicaciones",
         key="uywa_router_back_to_launcher",
         use_container_width=False,
-    )
-
-
-def _render_module_header(
-    module_code: str,
-) -> None:
-    """
-    Muestra una cabecera básica del módulo seleccionado.
-    """
-
-    module = get_module_by_code(module_code)
-
-    if module is None:
-        return
-
-    module_html = clean_html(
-        f"""
-        <div class="uywa-router-module-header">
-            <div class="uywa-router-module-icon">
-                {module.icon}
-            </div>
-
-            <div>
-                <div class="uywa-router-module-label">
-                    UYWA PLATFORM
-                </div>
-
-                <div class="uywa-router-module-title">
-                    {module.title}
-                </div>
-
-                <div class="uywa-router-module-description">
-                    {module.description}
-                </div>
-            </div>
-        </div>
-        """
-    )
-
-    st.markdown(
-        module_html,
-        unsafe_allow_html=True,
     )
 
 
@@ -94,8 +49,7 @@ def _inject_router_styles() -> None:
                 border-radius: 18px;
                 background: #FFFFFF;
                 box-shadow:
-                    0 8px 24px
-                    rgba(23, 35, 63, 0.07);
+                    0 8px 24px rgba(23, 35, 63, 0.07);
             }
 
             .uywa-router-module-icon {
@@ -141,6 +95,58 @@ def _inject_router_styles() -> None:
     )
 
 
+def _render_module_header(
+    module_code: str,
+) -> None:
+    """
+    Renderiza la cabecera de un módulo no integrado.
+    """
+
+    module = get_module_by_code(module_code)
+
+    if module is None:
+        return
+
+    module_icon = html.escape(
+        str(module.icon)
+    )
+    module_title = html.escape(
+        str(module.title)
+    )
+    module_description = html.escape(
+        str(module.description)
+    )
+
+    module_html = clean_html(
+        f"""
+        <div class="uywa-router-module-header">
+            <div class="uywa-router-module-icon">
+                {module_icon}
+            </div>
+
+            <div>
+                <div class="uywa-router-module-label">
+                    UYWA PLATFORM
+                </div>
+
+                <div class="uywa-router-module-title">
+                    {module_title}
+                </div>
+
+                <div class="uywa-router-module-description">
+                    {module_description}
+                </div>
+            </div>
+        </div>
+        """
+    )
+
+    st.markdown(
+        module_html,
+        unsafe_allow_html=True,
+    )
+
+
 def render_pet_nutrition_module() -> None:
     """
     Renderiza la aplicación real de Pet Nutrition.
@@ -171,7 +177,7 @@ def render_pet_nutrition_module() -> None:
 
 def render_formulation_placeholder() -> None:
     """
-    Pantalla temporal del módulo Formulation Plus.
+    Pantalla temporal de Formulation Plus.
     """
 
     st.info(
@@ -183,7 +189,7 @@ def render_generic_placeholder(
     module_code: str,
 ) -> None:
     """
-    Pantalla temporal para módulos aún no integrados.
+    Pantalla temporal para otros módulos.
     """
 
     st.info(
@@ -193,11 +199,10 @@ def render_generic_placeholder(
 
 def render_selected_module() -> bool:
     """
-    Renderiza el módulo actualmente seleccionado.
+    Renderiza el módulo seleccionado.
 
-    Retorna:
-    - True: existe un módulo seleccionado y fue procesado.
-    - False: no existe un módulo seleccionado.
+    Retorna True cuando existe un módulo seleccionado.
+    Retorna False cuando debe mostrarse el Launcher.
     """
 
     selected_module = get_selected_module()
@@ -205,7 +210,9 @@ def render_selected_module() -> bool:
     if not selected_module:
         return False
 
-    module = get_module_by_code(selected_module)
+    module = get_module_by_code(
+        selected_module
+    )
 
     if module is None:
         st.error(
@@ -226,17 +233,17 @@ def render_selected_module() -> bool:
 
     if selected_module == "pet_nutrition":
         render_pet_nutrition_module()
-    
+        return True
+
+    _render_module_header(
+        selected_module
+    )
+
+    if selected_module == "formulation_plus":
+        render_formulation_placeholder()
     else:
-        _render_module_header(
+        render_generic_placeholder(
             selected_module
         )
-    
-        if selected_module == "formulation_plus":
-            render_formulation_placeholder()
-        else:
-            render_generic_placeholder(
-                selected_module
-            )
 
     return True
