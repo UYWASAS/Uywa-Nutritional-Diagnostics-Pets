@@ -24,9 +24,7 @@ PET_ACTIVE_PAGE_KEY = (
     f"{PET_STATE_PREFIX}active_page"
 )
 
-PET_PROFILE_KEY = (
-    f"{PET_STATE_PREFIX}profile"
-)
+PET_PROFILE_KEY = "profile"
 
 PET_NAV_ITEMS = [
     (
