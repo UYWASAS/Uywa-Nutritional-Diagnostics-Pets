@@ -1,3 +1,11 @@
+from uywa_core.current_session import (
+    get_current_user,
+)
+from uywa_modules.pet_nutrition import (
+    build_platform_user_adapter,
+    render_pet_nutrition,
+)
+
 from __future__ import annotations
 
 import streamlit as st
@@ -133,18 +141,31 @@ def _inject_router_styles() -> None:
     )
 
 
-def render_pet_nutrition_placeholder() -> None:
+def render_pet_nutrition_module() -> None:
     """
-    Pantalla temporal del módulo Pet Nutrition.
+    Renderiza la aplicación real de Pet Nutrition.
     """
 
-    st.success(
-        "El router abrió correctamente Uywa Pet Nutrition."
+    current_user = get_current_user()
+
+    if not getattr(
+        current_user,
+        "authenticated",
+        False,
+    ):
+        st.error(
+            "No existe un usuario autenticado."
+        )
+        return
+
+    legacy_user = build_platform_user_adapter(
+        current_user
     )
 
-    st.info(
-        "En el siguiente paso reemplazaremos esta pantalla "
-        "por la aplicación real."
+    render_pet_nutrition(
+        user=legacy_user,
+        apply_pet_theme=True,
+        show_app_title=True,
     )
 
 
@@ -206,7 +227,7 @@ def render_selected_module() -> bool:
     _render_module_header(selected_module)
 
     if selected_module == "pet_nutrition":
-        render_pet_nutrition_placeholder()
+        render_pet_nutrition_module()
 
     elif selected_module == "formulation_plus":
         render_formulation_placeholder()
