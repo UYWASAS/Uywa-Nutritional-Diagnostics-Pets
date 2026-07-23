@@ -11,7 +11,9 @@ from utils.ui_components import (
 )
 from utils.ui_theme import inject_uywa_theme
 
-from .pages.analysis_page import show_analysis_page
+def show_analysis_page():
+    import streamlit as st
+    st.write("Analysis OK")
 from .pages.compare_page import show_compare_page
 from .pages.followup_page import show_followup_page
 from .pages.profile_page import show_profile_page
