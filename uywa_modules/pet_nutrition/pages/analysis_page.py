@@ -113,12 +113,8 @@ def show_analysis_page() -> None:
     la especie registrada en el perfil activo.
     """
 
-    active_species = (
-        _get_species_from_profile()
-    )
+    active_species = _get_species_from_profile()
 
-    _configure_species_dependent_keys(
-        active_species
-    )
+    _configure_species_dependent_keys(active_species)
 
     show_food_analysis()
