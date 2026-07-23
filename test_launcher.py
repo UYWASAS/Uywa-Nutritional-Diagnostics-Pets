@@ -24,6 +24,8 @@ from uywa_core.theme import inject_platform_theme
 
 from textwrap import dedent
 
+from uywa_core.theme.html_utils import clean_html
+
 st.set_page_config(
     page_title="Uywa Platform",
     page_icon="🐾",
@@ -44,23 +46,17 @@ def render_login() -> None:
     )
 
     with login_column:
-        st.markdown(
-            dedent(
-                """
-                <div style="
-                    text-align: center;
-                    margin-bottom: 1.5rem;
-                ">
-                    <h1 style="margin-bottom: 0.4rem;">
-                        Acceso a Uywa
-                    </h1>
+        login_header = clean_html(
+            """
+            <div class="uywa-login-header">
+                <h1>Acceso a Uywa</h1>
+                <p>Ingresa tus credenciales para continuar.</p>
+            </div>
+            """
+        )
         
-                    <p style="margin-top: 0;">
-                        Ingresa tus credenciales para continuar.
-                    </p>
-                </div>
-                """
-            ),
+        st.markdown(
+            login_header,
             unsafe_allow_html=True,
         )
 
