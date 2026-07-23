@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import streamlit as st
 
-from food_analysis import show_food_analysis
+from ..foods.food_analysis import show_food_analysis
 
 
 PROFILE_SESSION_KEY = "profile"
