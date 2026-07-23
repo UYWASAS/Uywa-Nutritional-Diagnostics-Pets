@@ -5,7 +5,7 @@ from __future__ import annotations
 import pandas as pd
 import streamlit as st
 
-from uywa_modules.pet_nutrition.foods.food_database import (
+from .food_database import (
     FOODS,
     calculate_energy,
     calculate_ena,
