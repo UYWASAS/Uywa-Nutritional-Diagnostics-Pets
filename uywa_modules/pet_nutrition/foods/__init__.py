@@ -3,6 +3,7 @@ from .food_analysis import (
     plot_energy_breakdown_stacked_with_edits,
     show_food_analysis,
 )
+
 from .food_database import (
     FOODS,
     calculate_ena,
