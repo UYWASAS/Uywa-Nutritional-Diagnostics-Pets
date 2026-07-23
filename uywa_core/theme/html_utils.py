@@ -5,31 +5,49 @@ from textwrap import dedent
 
 def clean_html(content: str) -> str:
     """
-    Normaliza fragmentos HTML para utilizarlos con
-    Streamlit (st.markdown(..., unsafe_allow_html=True)).
+    Normaliza fragmentos HTML para mostrarlos mediante:
 
-    La función únicamente:
+        st.markdown(
+            clean_html(html_content),
+            unsafe_allow_html=True,
+        )
 
-    - elimina la indentación común generada por el código;
-    - elimina espacios al inicio y final del contenido.
+    La función:
 
-    No modifica el HTML interno, por lo que conserva
-    correctamente:
+    - elimina la indentación común;
+    - elimina líneas vacías;
+    - elimina espacios al inicio y final de cada línea;
+    - une las líneas utilizando un espacio;
+    - conserva la separación necesaria entre etiquetas
+      y atributos HTML.
 
-    - etiquetas multilínea;
-    - atributos (class, style, id, etc.);
-    - bloques <style>;
-    - SVG;
-    - cualquier estructura HTML válida.
+    Ejemplo:
 
-    Esto evita errores como:
+        <div
+            class="uywa-card"
+        >
 
-        <divclass="...">
+    se convierte en:
 
-    producidos al concatenar líneas.
+        <div class="uywa-card" >
+
+    Esto evita dos problemas:
+
+    1. Que Streamlit interprete líneas indentadas como
+       bloques de código Markdown.
+    2. Que las etiquetas se conviertan erróneamente en
+       expresiones como <divclass="...">.
     """
 
     if not content:
         return ""
 
-    return dedent(content).strip()
+    normalized = dedent(content)
+
+    clean_lines = [
+        line.strip()
+        for line in normalized.splitlines()
+        if line.strip()
+    ]
+
+    return " ".join(clean_lines)
