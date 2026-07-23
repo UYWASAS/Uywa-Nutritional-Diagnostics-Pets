@@ -5,17 +5,14 @@ from textwrap import dedent
 
 def clean_html(content: str) -> str:
     """
-    Limpia el HTML antes de enviarlo a Streamlit.
+    Normaliza HTML para mostrarlo mediante st.markdown.
 
-    Streamlit puede interpretar líneas con cuatro espacios
-    como bloques de código Markdown, incluso cuando se usa
-    unsafe_allow_html=True.
-
-    Esta función:
-    - aplica dedent;
-    - elimina la indentación de cada línea;
-    - elimina líneas vacías;
-    - devuelve HTML continuo y seguro para st.markdown.
+    Elimina:
+    - indentación común;
+    - espacios al inicio de cada línea;
+    - líneas vacías;
+    - saltos de línea que Markdown podría interpretar
+      como bloques de código.
     """
 
     normalized = dedent(content)
@@ -26,4 +23,4 @@ def clean_html(content: str) -> str:
         if line.strip()
     ]
 
-    return "\n".join(clean_lines)
+    return "".join(clean_lines)
