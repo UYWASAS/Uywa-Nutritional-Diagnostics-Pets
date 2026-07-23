@@ -224,17 +224,19 @@ def render_selected_module() -> bool:
         clear_selected_module()
         st.rerun()
 
-    _render_module_header(selected_module)
-
     if selected_module == "pet_nutrition":
         render_pet_nutrition_module()
-
-    elif selected_module == "formulation_plus":
-        render_formulation_placeholder()
-
+    
     else:
-        render_generic_placeholder(
+        _render_module_header(
             selected_module
         )
+    
+        if selected_module == "formulation_plus":
+            render_formulation_placeholder()
+        else:
+            render_generic_placeholder(
+                selected_module
+            )
 
     return True
