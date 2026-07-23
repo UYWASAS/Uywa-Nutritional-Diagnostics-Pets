@@ -13,6 +13,7 @@ from uywa_core.current_session import (
     set_current_user,
 )
 from uywa_core.launcher.launcher_page import render_launcher
+from uywa_core.router import render_selected_module
 from uywa_core.launcher.launcher_sidebar import (
     render_platform_sidebar,
 )
@@ -223,7 +224,10 @@ def main() -> None:
         process_logout()
         return
 
-    render_launcher()
+    module_rendered = render_selected_module()
+
+    if not module_rendered:
+        render_launcher()
 
 
 if __name__ == "__main__":
