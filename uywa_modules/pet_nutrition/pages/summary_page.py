@@ -27,7 +27,7 @@ from utils.nutrient_reference import (
     NUTRIENTES_REFERENCIA_PERRO,
     NUTRIENTES_REFERENCIA_GATO,
 )
-from uywa_pages.profile_page import get_estado_corporal
+from .profile_page import get_estado_corporal
 
 def show_summary_page() -> None:
     st.header("📋 Resumen y Exportación")
