@@ -30,7 +30,4 @@ __all__ = [
     "infer_me_from_manufacturer_reference",
     "plot_energy_breakdown_stacked_with_edits",
     "show_food_analysis",
-]erence",
-    "infer_me_from_manufacturer_dog_10kg",
-    "infer_me_from_manufacturer_reference",
 ]
