@@ -13,126 +13,217 @@ from uywa_core.current_session import (
     set_current_user,
 )
 from uywa_core.launcher.launcher_page import render_launcher
+from uywa_core.launcher.launcher_sidebar import (
+    render_platform_sidebar,
+)
 from uywa_core.services.user_service import (
     UserServiceError,
     load_current_user,
 )
+from uywa_core.theme import inject_platform_theme
 
 
 st.set_page_config(
     page_title="Uywa Platform",
     page_icon="🐾",
     layout="wide",
+    initial_sidebar_state="expanded",
 )
+
+inject_platform_theme()
 
 
 def render_login() -> None:
-    st.title("Acceso a Uywa Platform")
+    """
+    Renderiza la pantalla temporal de acceso a Uywa Platform.
+    """
 
-    with st.form("launcher_login_form"):
-        email = st.text_input(
-            "Correo electrónico"
-        )
-
-        password = st.text_input(
-            "Contraseña",
-            type="password",
-        )
-
-        submitted = st.form_submit_button(
-            "Iniciar sesión",
-            use_container_width=True,
-        )
-
-    if not submitted:
-        return
-
-    result = sign_in(
-        email=email,
-        password=password,
+    _, login_column, _ = st.columns(
+        [1, 1.15, 1]
     )
 
-    if not result.get("success"):
-        st.error(
-            result.get(
-                "message",
-                "No fue posible iniciar sesión.",
-            )
+    with login_column:
+        st.markdown(
+            """
+            <div style="
+                text-align: center;
+                margin-bottom: 1.5rem;
+            ">
+                <h1 style="margin-bottom: 0.4rem;">
+                    Acceso a Uywa
+                </h1>
+
+                <p style="margin-top: 0;">
+                    Ingresa tus credenciales para continuar.
+                </p>
+            </div>
+            """,
+            unsafe_allow_html=True,
         )
-        return
 
-    auth_user = result.get("user")
+        with st.form(
+            "launcher_login_form",
+            clear_on_submit=False,
+        ):
+            email = st.text_input(
+                "Correo electrónico",
+                placeholder="usuario@correo.com",
+            )
 
-    try:
-        platform_user = load_current_user(auth_user)
-        set_current_user(platform_user)
+            password = st.text_input(
+                "Contraseña",
+                type="password",
+            )
 
-    except UserServiceError as exc:
-        clear_current_user()
-        st.error(str(exc))
-        return
+            submitted = st.form_submit_button(
+                "Iniciar sesión",
+                use_container_width=True,
+            )
 
-    st.rerun()
+        if not submitted:
+            return
+
+        email = email.strip()
+
+        if not email or not password:
+            st.warning(
+                "Ingresa el correo electrónico y la contraseña."
+            )
+            return
+
+        with st.spinner(
+            "Verificando credenciales..."
+        ):
+            result = sign_in(
+                email=email,
+                password=password,
+            )
+
+        if not result.get("success"):
+            st.error(
+                result.get(
+                    "message",
+                    "No fue posible iniciar sesión.",
+                )
+            )
+            return
+
+        auth_user = result.get("user")
+
+        if auth_user is None:
+            st.error(
+                "La autenticación fue aceptada, pero no se "
+                "recuperaron los datos del usuario."
+            )
+            return
+
+        try:
+            platform_user = load_current_user(
+                auth_user
+            )
+
+            set_current_user(
+                platform_user
+            )
+
+        except UserServiceError as exc:
+            clear_current_user()
+            st.error(str(exc))
+            return
+
+        except Exception as exc:
+            clear_current_user()
+
+            st.error(
+                "No fue posible cargar la cuenta de "
+                f"Uywa Platform: {exc}"
+            )
+            return
+
+        st.rerun()
 
 
 def restore_platform_user() -> None:
+    """
+    Restaura el usuario de la plataforma cuando existe una
+    sesión autenticada almacenada.
+    """
+
     current_user = get_current_user()
 
-    if current_user.authenticated:
+    if getattr(
+        current_user,
+        "authenticated",
+        False,
+    ):
         return
 
-    auth_user = get_auth_user()
+    try:
+        auth_user = get_auth_user()
+    except Exception:
+        clear_current_user()
+        return
 
     if auth_user is None:
         return
 
     try:
-        platform_user = load_current_user(auth_user)
-        set_current_user(platform_user)
+        platform_user = load_current_user(
+            auth_user
+        )
+
+        set_current_user(
+            platform_user
+        )
 
     except Exception:
         clear_current_user()
 
 
-def render_sidebar() -> None:
-    current_user = get_current_user()
+def process_logout() -> None:
+    """
+    Cierra la sesión de Supabase y limpia el estado local.
+    """
 
-    with st.sidebar:
-        st.subheader("Uywa Platform")
+    try:
+        sign_out()
+    finally:
+        clear_current_user()
 
-        st.write(
-            current_user.full_name
-            or current_user.email
-            or "Usuario"
+        st.session_state.pop(
+            "uywa_selected_module",
+            None,
         )
 
-        st.caption(
-            current_user.plan_name
-            or current_user.role
-            or ""
-        )
-
-        st.divider()
-
-        if st.button(
-            "Cerrar sesión",
-            use_container_width=True,
-        ):
-            sign_out()
-            clear_current_user()
-            st.rerun()
+    st.rerun()
 
 
 def main() -> None:
+    """
+    Punto principal de entrada del Launcher de prueba.
+    """
+
     restore_platform_user()
 
     current_user = get_current_user()
 
-    if not current_user.authenticated:
+    if not getattr(
+        current_user,
+        "authenticated",
+        False,
+    ):
         render_login()
         return
 
-    render_sidebar()
+    logout_clicked = render_platform_sidebar(
+        current_user=current_user,
+        logo_path="assets/logo.png",
+    )
+
+    if logout_clicked:
+        process_logout()
+        return
+
     render_launcher()
 
 
