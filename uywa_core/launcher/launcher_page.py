@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import html
-from textwrap import dedent
 
 import streamlit as st
 
@@ -14,6 +13,7 @@ from uywa_core.launcher.module_registry import (
     get_module_by_code,
     get_platform_modules,
 )
+from uywa_core.theme.html_utils import clean_html
 
 
 LAUNCHER_SELECTED_MODULE_KEY = "uywa_selected_module"
@@ -30,7 +30,7 @@ def initialize_launcher_state() -> None:
 
 def select_module(module_code: str) -> None:
     """
-    Guarda el código del módulo seleccionado.
+    Guarda el módulo seleccionado.
     """
 
     st.session_state[LAUNCHER_SELECTED_MODULE_KEY] = module_code
@@ -53,7 +53,7 @@ def get_selected_module() -> str | None:
 
 def clear_selected_module() -> None:
     """
-    Elimina la selección de módulo actual.
+    Elimina la selección de módulo.
     """
 
     st.session_state[LAUNCHER_SELECTED_MODULE_KEY] = None
@@ -61,8 +61,7 @@ def clear_selected_module() -> None:
 
 def _get_display_name(current_user: object) -> str:
     """
-    Obtiene el nombre visible del usuario desde las propiedades
-    disponibles en CurrentUser.
+    Obtiene el nombre visible del usuario.
     """
 
     profile = getattr(
@@ -108,8 +107,7 @@ def _get_display_name(current_user: object) -> str:
 
 def _get_plan_name(current_user: object) -> str:
     """
-    Obtiene el nombre del plan sin depender de una sola
-    estructura de CurrentUser.
+    Obtiene el nombre del plan.
     """
 
     direct_plan_name = (
@@ -145,7 +143,7 @@ def _get_plan_name(current_user: object) -> str:
 
 def _is_admin(current_user: object) -> bool:
     """
-    Verifica si el usuario tiene permisos administrativos.
+    Determina si el usuario tiene rol administrativo.
     """
 
     role = str(
@@ -167,7 +165,7 @@ def _is_admin(current_user: object) -> bool:
 
 def _count_enabled_modules(current_user: object) -> int:
     """
-    Cuenta los módulos habilitados del usuario.
+    Cuenta los módulos habilitados.
     """
 
     modules = getattr(
@@ -189,33 +187,33 @@ def _render_launcher_header(
     current_user: object,
 ) -> None:
     """
-    Renderiza el encabezado principal del Launcher.
+    Renderiza la cabecera principal del Launcher.
     """
 
     display_name = html.escape(
         _get_display_name(current_user)
     )
 
-    st.markdown(
-        dedent(
-            f"""
-            <div class="uywa-launcher-hero">
-                <div class="uywa-launcher-eyebrow">
-                    UYWA PLATFORM
-                </div>
-
-                <h1 class="uywa-launcher-title">
-                    Bienvenido, {display_name}
-                </h1>
-
-                <p class="uywa-launcher-subtitle">
-                    Selecciona una herramienta para comenzar.
-                    Todos tus módulos están organizados dentro
-                    de un mismo espacio de trabajo.
-                </p>
+    header_html = clean_html(
+        f"""
+        <div class="uywa-launcher-hero">
+            <div class="uywa-launcher-eyebrow">
+                UYWA PLATFORM
             </div>
-            """
-        ),
+            <h1 class="uywa-launcher-title">
+                Bienvenido, {display_name}
+            </h1>
+            <p class="uywa-launcher-subtitle">
+                Selecciona una herramienta para comenzar.
+                Todos tus módulos están organizados dentro
+                de un mismo espacio de trabajo.
+            </p>
+        </div>
+        """
+    )
+
+    st.markdown(
+        header_html,
         unsafe_allow_html=True,
     )
 
@@ -256,10 +254,7 @@ def _render_platform_summary(
     with column_2:
         st.metric(
             label="Rol",
-            value=role.replace(
-                "_",
-                " ",
-            ).title(),
+            value=role.replace("_", " ").title(),
         )
 
     with column_3:
@@ -273,8 +268,7 @@ def _render_module_grid(
     current_user: object,
 ) -> None:
     """
-    Renderiza los módulos registrados en una cuadrícula
-    de dos columnas.
+    Renderiza los módulos en una cuadrícula.
     """
 
     modules = get_platform_modules()
@@ -312,9 +306,7 @@ def _render_module_grid(
                 )
 
                 if selected_module:
-                    select_module(
-                        selected_module
-                    )
+                    select_module(selected_module)
                     st.rerun()
 
 
@@ -322,7 +314,7 @@ def _render_selected_module_placeholder(
     selected_module_code: str,
 ) -> None:
     """
-    Renderiza una pantalla temporal del módulo elegido.
+    Muestra temporalmente el módulo seleccionado.
     """
 
     module = get_module_by_code(
@@ -356,30 +348,25 @@ def _render_selected_module_placeholder(
         str(module.description)
     )
 
-    st.markdown(
-        dedent(
-            f"""
-            <div class="uywa-selected-module-header">
-                <div class="uywa-selected-module-icon">
-                    {module_icon}
-                </div>
-
-                <div>
-                    <div class="uywa-selected-module-label">
-                        MÓDULO SELECCIONADO
-                    </div>
-
-                    <h1>
-                        {module_title}
-                    </h1>
-
-                    <p>
-                        {module_description}
-                    </p>
-                </div>
+    selected_html = clean_html(
+        f"""
+        <div class="uywa-selected-module-header">
+            <div class="uywa-selected-module-icon">
+                {module_icon}
             </div>
-            """
-        ),
+            <div>
+                <div class="uywa-selected-module-label">
+                    MÓDULO SELECCIONADO
+                </div>
+                <h1>{module_title}</h1>
+                <p>{module_description}</p>
+            </div>
+        </div>
+        """
+    )
+
+    st.markdown(
+        selected_html,
         unsafe_allow_html=True,
     )
 
@@ -406,154 +393,138 @@ def inject_launcher_page_styles() -> None:
     Inserta los estilos específicos del Launcher.
     """
 
-    st.markdown(
-        dedent(
-            """
-            <style>
+    styles = clean_html(
+        """
+        <style>
+            .uywa-launcher-hero {
+                position: relative;
+                padding: 2rem 2.1rem;
+                margin-bottom: 1.5rem;
+                border-radius: 20px;
+                background:
+                    linear-gradient(
+                        130deg,
+                        #17233F 0%,
+                        #243454 60%,
+                        #28777E 120%
+                    );
+                box-shadow:
+                    0 12px 32px rgba(23, 35, 63, 0.16);
+                overflow: hidden;
+            }
+
+            .uywa-launcher-hero::after {
+                content: "";
+                position: absolute;
+                top: -100px;
+                right: -80px;
+                width: 260px;
+                height: 260px;
+                border-radius: 50%;
+                background: rgba(101, 190, 198, 0.14);
+            }
+
+            .uywa-launcher-eyebrow {
+                position: relative;
+                z-index: 1;
+                margin-bottom: 0.65rem;
+                color: #65BEC6;
+                font-size: 0.72rem;
+                font-weight: 800;
+                letter-spacing: 0.14em;
+            }
+
+            .uywa-launcher-title {
+                position: relative;
+                z-index: 1;
+                margin: 0;
+                color: #FFFFFF;
+                font-size: clamp(1.8rem, 4vw, 2.7rem);
+                font-weight: 800;
+            }
+
+            .uywa-launcher-subtitle {
+                position: relative;
+                z-index: 1;
+                max-width: 720px;
+                margin: 0.8rem 0 0 0;
+                color: rgba(255, 255, 255, 0.78);
+                font-size: 0.96rem;
+                line-height: 1.65;
+            }
+
+            .uywa-section-heading {
+                margin-top: 2rem;
+                margin-bottom: 1rem;
+            }
+
+            .uywa-section-heading h2 {
+                margin-bottom: 0.25rem;
+                color: #17233F;
+            }
+
+            .uywa-section-heading p {
+                margin-top: 0;
+                color: #7C8798;
+            }
+
+            .uywa-selected-module-header {
+                display: flex;
+                align-items: flex-start;
+                gap: 1.4rem;
+                padding: 2rem;
+                margin-bottom: 1.4rem;
+                border: 1px solid #DDE3EC;
+                border-radius: 20px;
+                background: #FFFFFF;
+                box-shadow:
+                    0 8px 24px rgba(23, 35, 63, 0.08);
+            }
+
+            .uywa-selected-module-icon {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                flex: 0 0 70px;
+                width: 70px;
+                height: 70px;
+                border-radius: 18px;
+                background: #EFF8F8;
+                font-size: 2.4rem;
+            }
+
+            .uywa-selected-module-label {
+                color: #28777E;
+                font-size: 0.7rem;
+                font-weight: 800;
+                letter-spacing: 0.12em;
+            }
+
+            .uywa-selected-module-header h1 {
+                margin: 0.3rem 0 0.45rem 0;
+                color: #17233F;
+            }
+
+            .uywa-selected-module-header p {
+                margin: 0;
+                color: #536174;
+            }
+
+            @media (max-width: 700px) {
                 .uywa-launcher-hero {
-                    position: relative;
-                    padding: 2rem 2.1rem;
-                    margin-bottom: 1.5rem;
-                    border-radius: 20px;
-                    background:
-                        linear-gradient(
-                            130deg,
-                            #17233F 0%,
-                            #243454 60%,
-                            #28777E 120%
-                        );
-                    box-shadow:
-                        0 12px 32px
-                        rgba(23, 35, 63, 0.16);
-                    overflow: hidden;
-                }
-
-                .uywa-launcher-hero::after {
-                    content: "";
-                    position: absolute;
-                    top: -100px;
-                    right: -80px;
-                    width: 260px;
-                    height: 260px;
-                    border-radius: 50%;
-                    background:
-                        rgba(101, 190, 198, 0.14);
-                }
-
-                .uywa-launcher-eyebrow {
-                    position: relative;
-                    z-index: 1;
-                    margin-bottom: 0.65rem;
-                    color: #65BEC6;
-                    font-size: 0.72rem;
-                    font-weight: 800;
-                    letter-spacing: 0.14em;
-                }
-
-                .uywa-launcher-title {
-                    position: relative;
-                    z-index: 1;
-                    margin: 0;
-                    color: #FFFFFF;
-                    font-size:
-                        clamp(
-                            1.8rem,
-                            4vw,
-                            2.7rem
-                        );
-                    font-weight: 800;
-                }
-
-                .uywa-launcher-subtitle {
-                    position: relative;
-                    z-index: 1;
-                    max-width: 720px;
-                    margin: 0.8rem 0 0 0;
-                    color:
-                        rgba(
-                            255,
-                            255,
-                            255,
-                            0.78
-                        );
-                    font-size: 0.96rem;
-                    line-height: 1.65;
-                }
-
-                .uywa-section-heading {
-                    margin-top: 2rem;
-                    margin-bottom: 1rem;
-                }
-
-                .uywa-section-heading h2 {
-                    margin-bottom: 0.25rem;
-                    color: #17233F;
-                }
-
-                .uywa-section-heading p {
-                    margin-top: 0;
-                    color: #7C8798;
+                    padding: 1.5rem;
                 }
 
                 .uywa-selected-module-header {
-                    display: flex;
-                    align-items: flex-start;
-                    gap: 1.4rem;
-                    padding: 2rem;
-                    margin-bottom: 1.4rem;
-                    border: 1px solid #DDE3EC;
-                    border-radius: 20px;
-                    background: #FFFFFF;
-                    box-shadow:
-                        0 8px 24px
-                        rgba(23, 35, 63, 0.08);
+                    flex-direction: column;
                 }
+            }
+        </style>
+        """
+    )
 
-                .uywa-selected-module-icon {
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    flex: 0 0 70px;
-                    width: 70px;
-                    height: 70px;
-                    border-radius: 18px;
-                    background: #EFF8F8;
-                    font-size: 2.4rem;
-                }
-
-                .uywa-selected-module-label {
-                    color: #28777E;
-                    font-size: 0.7rem;
-                    font-weight: 800;
-                    letter-spacing: 0.12em;
-                }
-
-                .uywa-selected-module-header h1 {
-                    margin:
-                        0.3rem
-                        0
-                        0.45rem
-                        0;
-                    color: #17233F;
-                }
-
-                .uywa-selected-module-header p {
-                    margin: 0;
-                    color: #536174;
-                }
-
-                @media (max-width: 700px) {
-                    .uywa-launcher-hero {
-                        padding: 1.5rem;
-                    }
-
-                    .uywa-selected-module-header {
-                        flex-direction: column;
-                    }
-                }
-            </style>
-            """
-        ),
+    st.markdown(
+        styles,
         unsafe_allow_html=True,
     )
 
@@ -606,18 +577,19 @@ def render_launcher() -> str | None:
         current_user
     )
 
-    st.markdown(
-        dedent(
-            """
-            <div class="uywa-section-heading">
-                <h2>Aplicaciones</h2>
+    section_html = clean_html(
+        """
+        <div class="uywa-section-heading">
+            <h2>Aplicaciones</h2>
+            <p>
+                Herramientas disponibles dentro de tu cuenta.
+            </p>
+        </div>
+        """
+    )
 
-                <p>
-                    Herramientas disponibles dentro de tu cuenta.
-                </p>
-            </div>
-            """
-        ),
+    st.markdown(
+        section_html,
         unsafe_allow_html=True,
     )
 
