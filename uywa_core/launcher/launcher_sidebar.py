@@ -289,6 +289,7 @@ def _get_current_platform_view() -> str:
         VIEW_ACCOUNT,
     }:
         current_view = VIEW_LAUNCHER
+
         st.session_state[
             PLATFORM_VIEW_KEY
         ] = current_view
@@ -299,7 +300,7 @@ def _get_current_platform_view() -> str:
 def _go_to_launcher() -> None:
     """
     Regresa al Launcher y abandona cualquier módulo
-    que se encuentre seleccionado.
+    seleccionado.
     """
 
     st.session_state[
@@ -315,7 +316,7 @@ def _go_to_launcher() -> None:
 def _go_to_account() -> None:
     """
     Abre la vista Mi cuenta y abandona cualquier módulo
-    que se encuentre seleccionado.
+    seleccionado.
     """
 
     st.session_state[
@@ -328,228 +329,311 @@ def _go_to_account() -> None:
     )
 
 
+def _render_html(
+    content: str,
+) -> None:
+    """
+    Renderiza un fragmento HTML compacto.
+
+    Los componentes visibles deben enviarse sin
+    indentaciones que Markdown pueda interpretar
+    como bloques de código.
+    """
+
+    st.markdown(
+        content,
+        unsafe_allow_html=True,
+    )
+
+
 def inject_sidebar_styles() -> None:
     """
     Inserta los estilos propios de la barra lateral.
     """
 
+    styles = clean_html(
+        """
+        <style>
+            .uywa-sidebar-brand {
+                margin-top: 1.15rem;
+                margin-bottom: 1.1rem;
+                text-align: center;
+            }
+
+            .uywa-sidebar-brand-title {
+                color: #FFFFFF;
+                font-size: 1.5rem;
+                font-weight: 800;
+                line-height: 1.2;
+            }
+
+            .uywa-sidebar-brand-subtitle {
+                max-width: 245px;
+                margin: 0.55rem auto 0;
+                color: rgba(255, 255, 255, 0.82);
+                font-size: 0.77rem;
+                line-height: 1.45;
+            }
+
+            .uywa-sidebar-divider {
+                height: 1px;
+                margin: 1.05rem 0;
+                background: rgba(255, 255, 255, 0.20);
+            }
+
+            .uywa-sidebar-user-card {
+                padding: 1rem;
+                border: 1px solid rgba(255, 255, 255, 0.18);
+                border-radius: 15px;
+                background: rgba(255, 255, 255, 0.07);
+                box-shadow: 0 8px 22px rgba(0, 0, 0, 0.08);
+            }
+
+            .uywa-sidebar-user-label {
+                margin-bottom: 0.5rem;
+                color: rgba(255, 255, 255, 0.67);
+                font-size: 0.66rem;
+                font-weight: 800;
+                letter-spacing: 0.12em;
+            }
+
+            .uywa-sidebar-user-name {
+                color: #FFFFFF;
+                font-size: 0.98rem;
+                font-weight: 780;
+                line-height: 1.35;
+                overflow-wrap: anywhere;
+            }
+
+            .uywa-sidebar-user-email {
+                margin-top: 0.22rem;
+                color: rgba(255, 255, 255, 0.69);
+                font-size: 0.71rem;
+                line-height: 1.4;
+                overflow-wrap: anywhere;
+            }
+
+            .uywa-sidebar-user-role {
+                margin-top: 0.7rem;
+                color: #65BEC6;
+                font-size: 0.73rem;
+                font-weight: 750;
+                text-transform: capitalize;
+            }
+
+            .uywa-sidebar-plan-row {
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-start;
+                gap: 0.65rem;
+                margin-top: 0.85rem;
+                padding-top: 0.75rem;
+                border-top: 1px solid rgba(255, 255, 255, 0.13);
+                color: rgba(255, 255, 255, 0.70);
+                font-size: 0.74rem;
+            }
+
+            .uywa-sidebar-plan-row strong {
+                color: #FFFFFF;
+                text-align: right;
+                overflow-wrap: anywhere;
+            }
+
+            .uywa-sidebar-license {
+                display: flex;
+                align-items: center;
+                gap: 0.45rem;
+                margin-top: 0.75rem;
+                font-size: 0.74rem;
+                font-weight: 750;
+            }
+
+            .uywa-sidebar-license-dot {
+                width: 8px;
+                height: 8px;
+                flex: 0 0 8px;
+                border-radius: 50%;
+            }
+
+            .uywa-license-active {
+                color: #8CE1C0;
+            }
+
+            .uywa-license-active .uywa-sidebar-license-dot {
+                background: #59D2A2;
+                box-shadow: 0 0 0 3px rgba(89, 210, 162, 0.14);
+            }
+
+            .uywa-license-inactive {
+                color: #F5BABA;
+            }
+
+            .uywa-license-inactive .uywa-sidebar-license-dot {
+                background: #E17777;
+                box-shadow: 0 0 0 3px rgba(225, 119, 119, 0.14);
+            }
+
+            .uywa-sidebar-expiration {
+                margin-top: 0.65rem;
+                color: rgba(255, 255, 255, 0.70);
+                font-size: 0.71rem;
+                text-align: center;
+            }
+
+            .uywa-sidebar-expiration strong {
+                color: #FFFFFF;
+            }
+
+            .uywa-sidebar-navigation {
+                margin-top: 1.15rem;
+            }
+
+            .uywa-sidebar-section-label {
+                margin-bottom: 0.48rem;
+                color: rgba(255, 255, 255, 0.57);
+                font-size: 0.64rem;
+                font-weight: 800;
+                letter-spacing: 0.13em;
+            }
+
+            section[data-testid="stSidebar"]
+            div[data-testid="stButton"]
+            button {
+                min-height: 43px !important;
+                border-radius: 11px !important;
+                font-size: 0.8rem !important;
+                font-weight: 750 !important;
+                transition:
+                    border-color 0.15s ease,
+                    background 0.15s ease,
+                    transform 0.15s ease;
+            }
+
+            section[data-testid="stSidebar"]
+            div[data-testid="stButton"]
+            button:hover {
+                transform: translateY(-1px);
+            }
+
+            .uywa-sidebar-logout-separator {
+                height: 1px;
+                margin: 1rem 0 0.85rem;
+                background: rgba(255, 255, 255, 0.15);
+            }
+
+            .uywa-sidebar-footer {
+                margin-top: 1.2rem;
+                padding-top: 0.9rem;
+                border-top: 1px solid rgba(255, 255, 255, 0.18);
+                color: rgba(255, 255, 255, 0.80);
+                font-size: 0.73rem;
+                line-height: 1.7;
+                text-align: center;
+            }
+
+            .uywa-sidebar-support-email {
+                overflow-wrap: anywhere;
+            }
+
+            .uywa-sidebar-copyright {
+                margin-top: 0.1rem;
+                color: rgba(255, 255, 255, 0.56);
+                font-size: 0.66rem;
+            }
+        </style>
+        """
+    )
+
     st.markdown(
-        clean_html(
-            """
-            <style>
-                .uywa-sidebar-brand {
-                    margin-top: 1.15rem;
-                    margin-bottom: 1.1rem;
-                    text-align: center;
-                }
-
-                .uywa-sidebar-brand-title {
-                    color: #FFFFFF;
-                    font-size: 1.5rem;
-                    font-weight: 800;
-                    line-height: 1.2;
-                }
-
-                .uywa-sidebar-brand-subtitle {
-                    max-width: 245px;
-                    margin: 0.55rem auto 0;
-                    color: rgba(255, 255, 255, 0.82);
-                    font-size: 0.77rem;
-                    line-height: 1.45;
-                }
-
-                .uywa-sidebar-divider {
-                    height: 1px;
-                    margin: 1.05rem 0;
-                    background: rgba(255, 255, 255, 0.20);
-                }
-
-                .uywa-sidebar-user-card {
-                    padding: 1rem;
-                    border:
-                        1px solid
-                        rgba(255, 255, 255, 0.18);
-                    border-radius: 15px;
-                    background:
-                        rgba(255, 255, 255, 0.07);
-                    box-shadow:
-                        0 8px 22px
-                        rgba(0, 0, 0, 0.08);
-                }
-
-                .uywa-sidebar-user-label {
-                    margin-bottom: 0.5rem;
-                    color:
-                        rgba(255, 255, 255, 0.67);
-                    font-size: 0.66rem;
-                    font-weight: 800;
-                    letter-spacing: 0.12em;
-                }
-
-                .uywa-sidebar-user-name {
-                    color: #FFFFFF;
-                    font-size: 0.98rem;
-                    font-weight: 780;
-                    line-height: 1.35;
-                    overflow-wrap: anywhere;
-                }
-
-                .uywa-sidebar-user-email {
-                    margin-top: 0.22rem;
-                    color:
-                        rgba(255, 255, 255, 0.69);
-                    font-size: 0.71rem;
-                    line-height: 1.4;
-                    overflow-wrap: anywhere;
-                }
-
-                .uywa-sidebar-user-role {
-                    margin-top: 0.7rem;
-                    color: #65BEC6;
-                    font-size: 0.73rem;
-                    font-weight: 750;
-                    text-transform: capitalize;
-                }
-
-                .uywa-sidebar-plan-row {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: flex-start;
-                    gap: 0.65rem;
-                    margin-top: 0.85rem;
-                    padding-top: 0.75rem;
-                    border-top:
-                        1px solid
-                        rgba(255, 255, 255, 0.13);
-                    color:
-                        rgba(255, 255, 255, 0.70);
-                    font-size: 0.74rem;
-                }
-
-                .uywa-sidebar-plan-row strong {
-                    color: #FFFFFF;
-                    text-align: right;
-                    overflow-wrap: anywhere;
-                }
-
-                .uywa-sidebar-license {
-                    display: flex;
-                    align-items: center;
-                    gap: 0.45rem;
-                    margin-top: 0.75rem;
-                    font-size: 0.74rem;
-                    font-weight: 750;
-                }
-
-                .uywa-sidebar-license-dot {
-                    width: 8px;
-                    height: 8px;
-                    flex: 0 0 8px;
-                    border-radius: 50%;
-                }
-
-                .uywa-license-active {
-                    color: #8CE1C0;
-                }
-
-                .uywa-license-active
-                .uywa-sidebar-license-dot {
-                    background: #59D2A2;
-                    box-shadow:
-                        0 0 0 3px
-                        rgba(89, 210, 162, 0.14);
-                }
-
-                .uywa-license-inactive {
-                    color: #F5BABA;
-                }
-
-                .uywa-license-inactive
-                .uywa-sidebar-license-dot {
-                    background: #E17777;
-                    box-shadow:
-                        0 0 0 3px
-                        rgba(225, 119, 119, 0.14);
-                }
-
-                .uywa-sidebar-expiration {
-                    margin-top: 0.65rem;
-                    color:
-                        rgba(255, 255, 255, 0.70);
-                    font-size: 0.71rem;
-                    text-align: center;
-                }
-
-                .uywa-sidebar-expiration strong {
-                    color: #FFFFFF;
-                }
-
-                .uywa-sidebar-navigation {
-                    margin-top: 1.15rem;
-                }
-
-                .uywa-sidebar-section-label {
-                    margin-bottom: 0.48rem;
-                    color:
-                        rgba(255, 255, 255, 0.57);
-                    font-size: 0.64rem;
-                    font-weight: 800;
-                    letter-spacing: 0.13em;
-                }
-
-                section[data-testid="stSidebar"]
-                div[data-testid="stButton"]
-                button {
-                    min-height: 43px !important;
-                    border-radius: 11px !important;
-                    font-size: 0.8rem !important;
-                    font-weight: 750 !important;
-                    transition:
-                        border-color 0.15s ease,
-                        background 0.15s ease,
-                        transform 0.15s ease;
-                }
-
-                section[data-testid="stSidebar"]
-                div[data-testid="stButton"]
-                button:hover {
-                    transform: translateY(-1px);
-                }
-
-                .uywa-sidebar-logout-separator {
-                    height: 1px;
-                    margin: 1rem 0 0.85rem;
-                    background:
-                        rgba(255, 255, 255, 0.15);
-                }
-
-                .uywa-sidebar-footer {
-                    margin-top: 1.2rem;
-                    padding-top: 0.9rem;
-                    border-top:
-                        1px solid
-                        rgba(255, 255, 255, 0.18);
-                    color:
-                        rgba(255, 255, 255, 0.80);
-                    font-size: 0.73rem;
-                    line-height: 1.7;
-                    text-align: center;
-                }
-
-                .uywa-sidebar-support-email {
-                    overflow-wrap: anywhere;
-                }
-
-                .uywa-sidebar-copyright {
-                    margin-top: 0.1rem;
-                    color:
-                        rgba(255, 255, 255, 0.56);
-                    font-size: 0.66rem;
-                }
-            </style>
-            """
-        ),
+        styles,
         unsafe_allow_html=True,
+    )
+
+
+def _render_sidebar_brand() -> None:
+    """
+    Renderiza el nombre y eslogan de la plataforma.
+    """
+
+    brand_html = (
+        '<div class="uywa-sidebar-brand">'
+        '<div class="uywa-sidebar-brand-title">'
+        "UYWA Nutrition"
+        "</div>"
+        '<div class="uywa-sidebar-brand-subtitle">'
+        "Nutrición de Precisión Basada en Evidencia"
+        "</div>"
+        "</div>"
+        '<div class="uywa-sidebar-divider"></div>'
+    )
+
+    _render_html(
+        brand_html
+    )
+
+
+def _render_user_card(
+    display_name: str,
+    email: str,
+    role: str,
+    plan_name: str,
+    license_text: str,
+    license_class: str,
+) -> None:
+    """
+    Renderiza la tarjeta de información del usuario.
+    """
+
+    user_card_html = (
+        '<div class="uywa-sidebar-user-card">'
+        '<div class="uywa-sidebar-user-label">'
+        "USUARIO"
+        "</div>"
+        '<div class="uywa-sidebar-user-name">'
+        f"{display_name}"
+        "</div>"
+        '<div class="uywa-sidebar-user-email">'
+        f"{email}"
+        "</div>"
+        '<div class="uywa-sidebar-user-role">'
+        f"{role}"
+        "</div>"
+        '<div class="uywa-sidebar-plan-row">'
+        "<span>Plan</span>"
+        f"<strong>{plan_name}</strong>"
+        "</div>"
+        f'<div class="uywa-sidebar-license {license_class}">'
+        '<span class="uywa-sidebar-license-dot"></span>'
+        f"<span>{license_text}</span>"
+        "</div>"
+        "</div>"
+    )
+
+    _render_html(
+        user_card_html
+    )
+
+
+def _render_expiration_date(
+    expiration_date: str,
+) -> None:
+    """
+    Renderiza la fecha de vigencia de la licencia.
+    """
+
+    safe_expiration = html.escape(
+        expiration_date
+    )
+
+    expiration_html = (
+        '<div class="uywa-sidebar-expiration">'
+        "Vigencia hasta: "
+        f"<strong>{safe_expiration}</strong>"
+        "</div>"
+    )
+
+    _render_html(
+        expiration_html
     )
 
 
@@ -574,17 +658,16 @@ def _render_sidebar_navigation() -> None:
         current_view == VIEW_ACCOUNT
     )
 
-    st.markdown(
-        clean_html(
-            """
-            <div class="uywa-sidebar-navigation">
-                <div class="uywa-sidebar-section-label">
-                    PLATAFORMA
-                </div>
-            </div>
-            """
-        ),
-        unsafe_allow_html=True,
+    navigation_header = (
+        '<div class="uywa-sidebar-navigation">'
+        '<div class="uywa-sidebar-section-label">'
+        "PLATAFORMA"
+        "</div>"
+        "</div>"
+    )
+
+    _render_html(
+        navigation_header
     )
 
     launcher_clicked = st.button(
@@ -616,6 +699,27 @@ def _render_sidebar_navigation() -> None:
     if account_clicked:
         _go_to_account()
         st.rerun()
+
+
+def _render_sidebar_footer() -> None:
+    """
+    Renderiza la información de soporte y derechos.
+    """
+
+    footer_html = (
+        '<div class="uywa-sidebar-footer">'
+        '<div class="uywa-sidebar-support-email">'
+        "📧 uywasas@gmail.com"
+        "</div>"
+        '<div class="uywa-sidebar-copyright">'
+        "Derechos reservados © 2026"
+        "</div>"
+        "</div>"
+    )
+
+    _render_html(
+        footer_html
+    )
 
 
 def render_platform_sidebar(
@@ -690,99 +794,26 @@ def render_platform_sidebar(
                 f"No se encontró el logo en {logo_path}"
             )
 
-        st.markdown(
-            clean_html(
-                """
-                <div class="uywa-sidebar-brand">
-                    <div class="uywa-sidebar-brand-title">
-                        UYWA Nutrition
-                    </div>
+        _render_sidebar_brand()
 
-                    <div class="uywa-sidebar-brand-subtitle">
-                        Nutrición de Precisión
-                        Basada en Evidencia
-                    </div>
-                </div>
-
-                <div class="uywa-sidebar-divider"></div>
-                """
-            ),
-            unsafe_allow_html=True,
-        )
-
-        user_card_html = clean_html(
-            f"""
-            <div class="uywa-sidebar-user-card">
-                <div class="uywa-sidebar-user-label">
-                    USUARIO
-                </div>
-
-                <div class="uywa-sidebar-user-name">
-                    {display_name}
-                </div>
-
-                <div class="uywa-sidebar-user-email">
-                    {email}
-                </div>
-
-                <div class="uywa-sidebar-user-role">
-                    {role}
-                </div>
-
-                <div class="uywa-sidebar-plan-row">
-                    <span>Plan</span>
-                    <strong>{plan_name}</strong>
-                </div>
-
-                <div
-                    class="
-                        uywa-sidebar-license
-                        {license_class}
-                    "
-                >
-                    <span
-                        class="uywa-sidebar-license-dot"
-                    ></span>
-
-                    <span>{license_text}</span>
-                </div>
-            </div>
-            """
-        )
-
-        st.markdown(
-            user_card_html,
-            unsafe_allow_html=True,
+        _render_user_card(
+            display_name=display_name,
+            email=email,
+            role=role,
+            plan_name=plan_name,
+            license_text=license_text,
+            license_class=license_class,
         )
 
         if expiration_date:
-            safe_expiration = html.escape(
+            _render_expiration_date(
                 expiration_date
-            )
-
-            st.markdown(
-                clean_html(
-                    f"""
-                    <div class="uywa-sidebar-expiration">
-                        Vigencia hasta:
-                        <strong>{safe_expiration}</strong>
-                    </div>
-                    """
-                ),
-                unsafe_allow_html=True,
             )
 
         _render_sidebar_navigation()
 
-        st.markdown(
-            clean_html(
-                """
-                <div
-                    class="uywa-sidebar-logout-separator"
-                ></div>
-                """
-            ),
-            unsafe_allow_html=True,
+        _render_html(
+            '<div class="uywa-sidebar-logout-separator"></div>'
         )
 
         logout_clicked = st.button(
@@ -792,21 +823,6 @@ def render_platform_sidebar(
             type="secondary",
         )
 
-        st.markdown(
-            clean_html(
-                """
-                <div class="uywa-sidebar-footer">
-                    <div class="uywa-sidebar-support-email">
-                        📧 uywasas@gmail.com
-                    </div>
-
-                    <div class="uywa-sidebar-copyright">
-                        Derechos reservados © 2026
-                    </div>
-                </div>
-                """
-            ),
-            unsafe_allow_html=True,
-        )
+        _render_sidebar_footer()
 
     return logout_clicked
