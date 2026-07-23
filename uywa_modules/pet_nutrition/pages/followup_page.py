@@ -12,7 +12,7 @@ import datetime
 import pandas as pd
 import streamlit as st
 
-from clinical_state import (
+from ..core.clinical_state import (
     clinical_state_is_ready,
     get_current_clinical_state,
 )
