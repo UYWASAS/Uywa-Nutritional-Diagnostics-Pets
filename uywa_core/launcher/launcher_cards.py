@@ -5,6 +5,7 @@ from textwrap import dedent
 
 import streamlit as st
 
+from uywa_core.theme.html_utils import clean_html
 from uywa_core.current_user import CurrentUser
 from uywa_core.launcher.module_registry import PlatformModule
 from uywa_core.theme.tokens import (
@@ -297,7 +298,7 @@ def render_module_card(
     status = html.escape(str(status_text))
     module_code = html.escape(str(module.code))
 
-    card_html = dedent(
+    card_html = clean_html(
         f"""
         <div class="{card_class}">
             <div class="uywa-module-icon-container">
@@ -305,21 +306,17 @@ def render_module_card(
                     {icon}
                 </div>
             </div>
-
             <h3 class="uywa-module-title">
                 {title}
             </h3>
-
             <p class="uywa-module-description">
                 {description}
             </p>
-
             <div class="uywa-module-footer">
                 <span class="uywa-module-status {status_class}">
                     <span class="uywa-module-status-dot"></span>
                     {status}
                 </span>
-
                 <span class="uywa-module-code">
                     {module_code}
                 </span>
@@ -327,7 +324,7 @@ def render_module_card(
         </div>
         """
     )
-
+    
     st.markdown(
         card_html,
         unsafe_allow_html=True,
