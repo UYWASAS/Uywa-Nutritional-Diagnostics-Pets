@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import html
 from pathlib import Path
-from textwrap import dedent
 
 import streamlit as st
 
@@ -439,7 +438,7 @@ def render_platform_sidebar(
             unsafe_allow_html=True,
         )
 
-        user_card_html = dedent(
+        user_card_html = clean_html(
             f"""
             <div class="uywa-sidebar-user-card">
                 <div class="uywa-sidebar-user-label">
