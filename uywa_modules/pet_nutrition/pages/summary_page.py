@@ -9,7 +9,11 @@ import datetime
 import pandas as pd
 import streamlit as st
 
-from clinical_state import get_current_clinical_state, clinical_state_is_ready
+from ..core.clinical_state import (
+    clinical_state_is_ready,
+    get_current_clinical_state,
+)
+
 from food_database import (
     FOODS,
     calculate_energy as calc_energy_food,
