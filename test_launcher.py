@@ -22,6 +22,7 @@ from uywa_core.services.user_service import (
 )
 from uywa_core.theme import inject_platform_theme
 
+from textwrap import dedent
 
 st.set_page_config(
     page_title="Uywa Platform",
@@ -44,20 +45,22 @@ def render_login() -> None:
 
     with login_column:
         st.markdown(
-            """
-            <div style="
-                text-align: center;
-                margin-bottom: 1.5rem;
-            ">
-                <h1 style="margin-bottom: 0.4rem;">
-                    Acceso a Uywa
-                </h1>
-
-                <p style="margin-top: 0;">
-                    Ingresa tus credenciales para continuar.
-                </p>
-            </div>
-            """,
+            dedent(
+                """
+                <div style="
+                    text-align: center;
+                    margin-bottom: 1.5rem;
+                ">
+                    <h1 style="margin-bottom: 0.4rem;">
+                        Acceso a Uywa
+                    </h1>
+        
+                    <p style="margin-top: 0;">
+                        Ingresa tus credenciales para continuar.
+                    </p>
+                </div>
+                """
+            ),
             unsafe_allow_html=True,
         )
 
