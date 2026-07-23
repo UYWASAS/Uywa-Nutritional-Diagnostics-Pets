@@ -434,28 +434,34 @@ def inject_launcher_page_styles() -> None:
                 letter-spacing: 0.14em;
             }
 
-            .uywa-launcher-title {
+            .uywa-launcher-hero .uywa-launcher-title {
                 position: relative;
-                z-index: 1;
+                z-index: 2;
                 margin: 0;
                 color: #FFFFFF;
                 font-size: clamp(1.8rem, 4vw, 2.7rem);
                 font-weight: 800;
+                line-height: 1.2;
             }
 
-            .uywa-launcher-subtitle {
+            .uywa-launcher-hero .uywa-launcher-subtitle {
                 position: relative;
-                z-index: 1;
+                z-index: 2;
                 max-width: 720px;
                 margin: 0.8rem 0 0 0;
-                color: rgba(255, 255, 255, 0.78);
+                color: rgba(255, 255, 255, 0.92) !important;
                 font-size: 0.96rem;
                 line-height: 1.65;
             }
 
-            .uywa-section-heading {
-                margin-top: 2rem;
-                margin-bottom: 1rem;
+            .uywa-launcher-hero .uywa-launcher-eyebrow {
+                position: relative;
+                z-index: 2;
+                margin-bottom: 0.65rem;
+                color: #65BEC6 !important;
+                font-size: 0.72rem;
+                font-weight: 800;
+                letter-spacing: 0.14em;
             }
 
             .uywa-section-heading h2 {
