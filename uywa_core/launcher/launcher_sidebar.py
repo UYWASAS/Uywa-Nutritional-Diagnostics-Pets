@@ -7,6 +7,7 @@ from textwrap import dedent
 import streamlit as st
 
 from uywa_core.current_user import CurrentUser
+from uywa_core.theme.html_utils import clean_html
 
 
 DEFAULT_LOGO_PATH = "assets/logo.png"
@@ -206,7 +207,7 @@ def _subscription_is_active(
 
 def inject_sidebar_styles() -> None:
     st.markdown(
-        dedent(
+        clean_html(
             """
             <style>
                 .uywa-sidebar-brand {
@@ -420,7 +421,7 @@ def render_platform_sidebar(
             )
 
         st.markdown(
-            dedent(
+            clean_html(
                 """
                 <div class="uywa-sidebar-brand">
                     <div class="uywa-sidebar-brand-title">
@@ -481,7 +482,7 @@ def render_platform_sidebar(
             )
 
             st.markdown(
-                dedent(
+                clean_html(
                     f"""
                     <div class="uywa-sidebar-expiration">
                         Vigencia hasta:
@@ -501,7 +502,7 @@ def render_platform_sidebar(
         )
 
         st.markdown(
-            dedent(
+            clean_html(
                 """
                 <div class="uywa-sidebar-footer">
                     <div>📧 uywasas@gmail.com</div>
