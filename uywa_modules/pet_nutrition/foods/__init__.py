@@ -1,3 +1,8 @@
+from .food_analysis import (
+    build_energy_breakdown_table_with_edits,
+    plot_energy_breakdown_stacked_with_edits,
+    show_food_analysis,
+)
 from .food_database import (
     FOODS,
     calculate_ena,
@@ -13,6 +18,7 @@ from .food_database import (
 
 __all__ = [
     "FOODS",
+    "build_energy_breakdown_table_with_edits",
     "calculate_ena",
     "calculate_energy",
     "calculate_energy_breakdown",
@@ -20,6 +26,11 @@ __all__ = [
     "get_food_data",
     "get_food_names",
     "infer_me_from_food_manufacturer_reference",
+    "infer_me_from_manufacturer_dog_10kg",
+    "infer_me_from_manufacturer_reference",
+    "plot_energy_breakdown_stacked_with_edits",
+    "show_food_analysis",
+]erence",
     "infer_me_from_manufacturer_dog_10kg",
     "infer_me_from_manufacturer_reference",
 ]
