@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import streamlit as st
 
-from clinical_state import get_current_clinical_state
+from ..core.clinical_state import get_current_clinical_state
 from food_analysis import get_foods_by_species
 from food_database import (
     FOODS,
