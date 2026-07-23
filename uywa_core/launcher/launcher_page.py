@@ -567,14 +567,6 @@ def render_launcher() -> str | None:
         )
         return None
 
-    selected_module = get_selected_module()
-
-    if selected_module:
-        _render_selected_module_placeholder(
-            selected_module
-        )
-        return selected_module
-
     _render_launcher_header(
         current_user
     )
