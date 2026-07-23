@@ -14,7 +14,7 @@ from ..core.clinical_state import (
     get_current_clinical_state,
 )
 
-from food_database import (
+from ..foods.food_database import (
     FOODS,
     calculate_energy as calc_energy_food,
     calculate_ena as calc_ena_food,
