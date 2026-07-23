@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections.abc import Callable
 from typing import Any
 
 import streamlit as st
@@ -18,6 +17,16 @@ from uywa_pages.followup_page import show_followup_page
 from uywa_pages.profile_page import show_profile_page
 from uywa_pages.summary_page import show_summary_page
 
+
+PET_STATE_PREFIX = "uywa_pet_"
+
+PET_ACTIVE_PAGE_KEY = (
+    f"{PET_STATE_PREFIX}active_page"
+)
+
+PET_PROFILE_KEY = (
+    f"{PET_STATE_PREFIX}profile"
+)
 
 PET_NAV_ITEMS = [
     (
@@ -47,17 +56,13 @@ PET_NAV_ITEMS = [
     ),
 ]
 
-PET_ACTIVE_PAGE_KEY = "pagina_activa_principal"
-PET_PROFILE_KEY = "profile"
-
 
 def initialize_pet_ui() -> None:
     """
     Aplica los estilos propios de Pet Nutrition.
 
-    No ejecuta st.set_page_config(), porque la configuración
-    de página corresponde al archivo principal que ejecuta
-    Streamlit.
+    No ejecuta st.set_page_config(), porque esta
+    responsabilidad corresponde al contenedor principal.
     """
 
     inject_global_css()
@@ -68,11 +73,8 @@ def build_platform_user_adapter(
     current_user: object,
 ) -> dict[str, Any]:
     """
-    Convierte CurrentUser en un diccionario compatible con
-    las funciones heredadas de Pet Nutrition.
-
-    Mantiene varias claves equivalentes para reducir
-    incompatibilidades con load_profile() y save_profile().
+    Convierte CurrentUser en un diccionario compatible
+    con las funciones heredadas de Pet Nutrition.
     """
 
     metadata = getattr(
@@ -104,11 +106,21 @@ def build_platform_user_adapter(
             plan.get("name")
             or plan.get("code")
         )
+
     elif plan is not None:
         plan_name = (
-            getattr(plan, "name", None)
-            or getattr(plan, "code", None)
+            getattr(
+                plan,
+                "name",
+                None,
+            )
+            or getattr(
+                plan,
+                "code",
+                None,
+            )
         )
+
     else:
         plan_name = None
 
@@ -122,44 +134,100 @@ def build_platform_user_adapter(
 
     if isinstance(subscription, dict):
         subscription_expiration = (
-            subscription.get("expires_at")
-            or subscription.get("end_date")
+            subscription.get(
+                "expires_at"
+            )
+            or subscription.get(
+                "end_date"
+            )
             or subscription.get(
                 "subscription_expires_at"
             )
         )
 
     user_id = (
-        getattr(current_user, "id", None)
-        or getattr(current_user, "user_id", None)
-        or getattr(current_user, "auth_user_id", None)
-        or metadata.get("user_id")
-        or metadata.get("sub")
+        getattr(
+            current_user,
+            "id",
+            None,
+        )
+        or getattr(
+            current_user,
+            "user_id",
+            None,
+        )
+        or getattr(
+            current_user,
+            "auth_user_id",
+            None,
+        )
+        or metadata.get(
+            "user_id"
+        )
+        or metadata.get(
+            "sub"
+        )
     )
 
     email = (
-        getattr(current_user, "email", None)
-        or profile.get("email")
-        or metadata.get("email")
+        getattr(
+            current_user,
+            "email",
+            None,
+        )
+        or profile.get(
+            "email"
+        )
+        or metadata.get(
+            "email"
+        )
         or ""
     )
 
     display_name = (
-        getattr(current_user, "full_name", None)
-        or getattr(current_user, "display_name", None)
-        or getattr(current_user, "name", None)
-        or profile.get("full_name")
-        or profile.get("display_name")
-        or profile.get("name")
-        or metadata.get("full_name")
-        or metadata.get("name")
+        getattr(
+            current_user,
+            "full_name",
+            None,
+        )
+        or getattr(
+            current_user,
+            "display_name",
+            None,
+        )
+        or getattr(
+            current_user,
+            "name",
+            None,
+        )
+        or profile.get(
+            "full_name"
+        )
+        or profile.get(
+            "display_name"
+        )
+        or profile.get(
+            "name"
+        )
+        or metadata.get(
+            "full_name"
+        )
+        or metadata.get(
+            "name"
+        )
         or email
         or "Usuario"
     )
 
     role = (
-        getattr(current_user, "role", None)
-        or profile.get("role")
+        getattr(
+            current_user,
+            "role",
+            None,
+        )
+        or profile.get(
+            "role"
+        )
         or "user"
     )
 
@@ -169,13 +237,25 @@ def build_platform_user_adapter(
             "subscription_expires_at",
             None,
         )
-        or getattr(current_user, "expires_at", None)
+        or getattr(
+            current_user,
+            "expires_at",
+            None,
+        )
         or subscription_expiration
     )
 
     resolved_plan = (
-        getattr(current_user, "plan_name", None)
-        or getattr(current_user, "plan_code", None)
+        getattr(
+            current_user,
+            "plan_name",
+            None,
+        )
+        or getattr(
+            current_user,
+            "plan_code",
+            None,
+        )
         or plan_name
         or "Sin plan"
     )
@@ -188,9 +268,13 @@ def build_platform_user_adapter(
         "username": str(email),
         "usuario": str(email),
         "name": str(display_name),
-        "full_name": str(display_name),
+        "full_name": str(
+            display_name
+        ),
         "role": str(role),
-        "plan": str(resolved_plan),
+        "plan": str(
+            resolved_plan
+        ),
         "expires": expiration,
         "source": "uywa_platform",
     }
@@ -198,7 +282,7 @@ def build_platform_user_adapter(
 
 def _default_pet_profile() -> dict[str, Any]:
     """
-    Perfil inicial utilizado cuando no existe un perfil guardado.
+    Devuelve el perfil inicial de una mascota.
     """
 
     return {
@@ -217,35 +301,51 @@ def load_pet_profile_once(
     user: dict[str, Any],
 ) -> dict[str, Any]:
     """
-    Carga el perfil solo una vez por sesión.
+    Carga el perfil una sola vez por sesión.
 
-    Evita que el perfil se sobrescriba en cada rerun y que
-    la navegación rebote a la primera página.
+    Evita sobrescrituras en cada rerun y conserva
+    la página interna seleccionada.
     """
 
     if PET_PROFILE_KEY not in st.session_state:
-        loaded_profile = load_profile(user) or {}
+        loaded_profile = (
+            load_profile(user)
+            or {}
+        )
 
-        if not isinstance(loaded_profile, dict):
+        if not isinstance(
+            loaded_profile,
+            dict,
+        ):
             loaded_profile = {}
 
         loaded_profile.setdefault(
             "mascota",
-            _default_pet_profile()["mascota"],
+            _default_pet_profile()[
+                "mascota"
+            ],
         )
 
-        st.session_state[PET_PROFILE_KEY] = (
-            loaded_profile
-        )
+        st.session_state[
+            PET_PROFILE_KEY
+        ] = loaded_profile
 
     profile = st.session_state.get(
         PET_PROFILE_KEY,
         {},
     )
 
-    if not isinstance(profile, dict):
-        profile = _default_pet_profile()
-        st.session_state[PET_PROFILE_KEY] = profile
+    if not isinstance(
+        profile,
+        dict,
+    ):
+        profile = (
+            _default_pet_profile()
+        )
+
+        st.session_state[
+            PET_PROFILE_KEY
+        ] = profile
 
     return profile
 
@@ -269,9 +369,9 @@ def update_and_save_profile(
         )
         return
 
-    st.session_state[PET_PROFILE_KEY] = (
-        updated_profile
-    )
+    st.session_state[
+        PET_PROFILE_KEY
+    ] = updated_profile
 
     st.success(
         "Perfil actualizado exitosamente."
@@ -331,9 +431,11 @@ def reset_species_dependent_state() -> None:
             None,
         )
 
-    for key in list(
+    session_keys = list(
         st.session_state.keys()
-    ):
+    )
+
+    for key in session_keys:
         if any(
             key.startswith(prefix)
             for prefix in prefixes
@@ -344,9 +446,30 @@ def reset_species_dependent_state() -> None:
             )
 
 
+def clear_pet_module_state() -> None:
+    """
+    Elimina el estado principal del módulo Pet Nutrition.
+
+    Puede utilizarse al cerrar sesión o cuando se necesite
+    reiniciar completamente el módulo.
+    """
+
+    st.session_state.pop(
+        PET_PROFILE_KEY,
+        None,
+    )
+
+    st.session_state.pop(
+        PET_ACTIVE_PAGE_KEY,
+        None,
+    )
+
+    reset_species_dependent_state()
+
+
 def _inject_pet_navigation_styles() -> None:
     """
-    Inserta estilos de la navegación interna de Pet Nutrition.
+    Inserta estilos limitados a la navegación interna.
     """
 
     st.markdown(
@@ -354,21 +477,18 @@ def _inject_pet_navigation_styles() -> None:
         <style>
             div[data-testid="stHorizontalBlock"]
             div[data-testid="column"]
-            button {
+            div[data-testid="stButton"]
+            button[kind="primary"],
+            div[data-testid="stHorizontalBlock"]
+            div[data-testid="column"]
+            div[data-testid="stButton"]
+            button[kind="secondary"] {
                 min-height: 58px !important;
                 border-radius: 16px !important;
                 font-size: 1rem !important;
                 font-weight: 800 !important;
                 border:
                     1px solid #DDE7F3 !important;
-                background:
-                    rgba(
-                        255,
-                        255,
-                        255,
-                        0.82
-                    ) !important;
-                color: #0F172A !important;
                 box-shadow:
                     0 8px 20px
                     rgba(
@@ -381,10 +501,12 @@ def _inject_pet_navigation_styles() -> None:
 
             div[data-testid="stHorizontalBlock"]
             div[data-testid="column"]
+            div[data-testid="stButton"]
             button:hover {
                 border-color:
                     #2563EB !important;
-                transform: translateY(-1px);
+                transform:
+                    translateY(-1px);
             }
         </style>
         """,
@@ -440,7 +562,10 @@ def _render_pet_navigation() -> str:
 
             clicked = st.button(
                 f"{icon} {label}",
-                key=f"nav_btn_{page_key}",
+                key=(
+                    f"{PET_STATE_PREFIX}"
+                    f"nav_btn_{page_key}"
+                ),
                 use_container_width=True,
                 type=(
                     "primary"
@@ -496,7 +621,9 @@ def _render_active_pet_page(
     elif active_page == "Resumen y Exportar":
         show_summary_page()
 
-    elif active_page == "Seguimiento del Paciente":
+    elif active_page == (
+        "Seguimiento del Paciente"
+    ):
         show_followup_page()
 
     else:
@@ -514,17 +641,20 @@ def render_pet_nutrition(
     """
     Renderiza la aplicación completa de Pet Nutrition.
 
-    Esta función no contiene:
+    No contiene:
+
     - autenticación;
     - sidebar;
     - cierre de sesión;
     - st.set_page_config().
 
-    Esas responsabilidades pertenecen al contenedor que
-    ejecuta la aplicación.
+    Estas responsabilidades pertenecen al contenedor.
     """
 
-    if not isinstance(user, dict) or not user:
+    if not isinstance(
+        user,
+        dict,
+    ) or not user:
         st.error(
             "No se recibió un usuario válido para "
             "Uywa Pet Nutrition."
@@ -543,7 +673,9 @@ def render_pet_nutrition(
 
     _inject_pet_navigation_styles()
 
-    active_page = _render_pet_navigation()
+    active_page = (
+        _render_pet_navigation()
+    )
 
     st.markdown("---")
 
