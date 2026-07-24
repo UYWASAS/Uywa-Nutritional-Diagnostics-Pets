@@ -4,8 +4,6 @@ Página Comparador nutricional.
 
 from __future__ import annotations
 
-import streamlit as st
-
 from ..core.clinical_state import get_current_clinical_state
 from ..foods.food_analysis import get_foods_by_species
 from ..foods.food_database import (
