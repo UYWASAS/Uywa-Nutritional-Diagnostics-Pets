@@ -4,7 +4,7 @@ from __future__ import annotations
 import streamlit as st
 
 from auth import authenticate_user
-from profile import load_profile, save_profile
+from services.profile_manager import load_profile, save_profile
 from utils.ui_components import inject_global_css, render_app_title
 from utils.ui_theme import inject_uywa_theme
 
