@@ -4,7 +4,7 @@ from typing import Any
 
 import streamlit as st
 
-from profile import load_profile, save_profile
+from services.profile_manager import load_profile, save_profile
 from utils.ui_components import (
     inject_global_css,
     render_app_title,
