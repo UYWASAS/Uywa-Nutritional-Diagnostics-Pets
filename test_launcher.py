@@ -23,8 +23,6 @@ from uywa_core.services.user_service import (
 )
 from uywa_core.theme import inject_platform_theme
 
-from textwrap import dedent
-
 from uywa_core.theme.html_utils import clean_html
 
 st.set_page_config(
