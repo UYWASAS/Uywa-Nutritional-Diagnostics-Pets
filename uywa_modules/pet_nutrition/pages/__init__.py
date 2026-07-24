@@ -15,9 +15,3 @@ __all__ = [
     "show_profile_page",
     "show_summary_page",
 ]
-    "infer_me_from_food_manufacturer_reference",
-    "infer_me_from_manufacturer_reference",
-    "show_food_analysis",
-    "build_energy_breakdown_table_with_edits",
-    "plot_energy_breakdown_stacked_with_edits",
-]
