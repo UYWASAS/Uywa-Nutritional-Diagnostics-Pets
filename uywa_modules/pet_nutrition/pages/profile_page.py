@@ -11,7 +11,7 @@ import pandas as pd
 import streamlit as st
 
 from energy_requirements import calcular_rer
-from clinical_state import safe_float
+from ..core.clinical_state import safe_float
 from utils.fmt_tools import fmt2
 from utils.ui_components import (
     render_section_header,
