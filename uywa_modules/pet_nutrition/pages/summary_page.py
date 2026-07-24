@@ -20,7 +20,7 @@ from ..foods.food_database import (
     calculate_ena as calc_ena_food,
     calculate_energy_breakdown,
 )
-from export_tools import (
+from ..exports.export_tools import (
     generar_diagnostico_resumen,
     generar_recomendaciones,
     generar_decision_resumen,
