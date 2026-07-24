@@ -18,7 +18,7 @@ from ..core.clinical_state import (
 )
 
 try:
-    from patient_followup import (
+    from ..followup.patient_followup import (
         show_patient_followup as _show_patient_followup,
     )
 except ImportError:
